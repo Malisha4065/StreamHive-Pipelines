@@ -67,7 +67,6 @@ stages:
       displayName: 'Clear npm cache'
 
     - script: |
-        cd Frontend
         echo "Current directory: $(pwd)"
         echo "Directory contents:"
         ls -la
@@ -81,8 +80,8 @@ stages:
         containerRegistry: $(dockerRegistryServiceConnection)
         repository: $(imageRepository)/streamhive-frontend
         command: 'buildAndPush'
-        Dockerfile: 'Frontend/Dockerfile'
-        buildContext: 'Frontend'
+        Dockerfile: 'Dockerfile'
+        buildContext: '.'
         tags: |
           $(Build.BuildNumber)
           latest
@@ -99,7 +98,9 @@ stages:
         versionSpec: '18.x'
     
     - script: |
-        cd UploadService
+        echo "Current directory: $(pwd)"
+        echo "Directory contents:"
+        ls -la
         npm ci
         npm test || echo "Tests completed with warnings"
       displayName: 'Build and Test Upload Service'
@@ -110,8 +111,8 @@ stages:
         containerRegistry: $(dockerRegistryServiceConnection)
         repository: $(imageRepository)/streamhive-upload-service
         command: 'buildAndPush'
-        Dockerfile: 'UploadService/Dockerfile'
-        buildContext: 'UploadService'
+        Dockerfile: 'Dockerfile'
+        buildContext: '.'
         tags: |
           $(Build.BuildNumber)
           latest
@@ -122,7 +123,7 @@ stages:
       name: 'Default'
     steps:
     - checkout: transcoder
-
+    
     - script: |
         echo "Setting up Go environment..."
         export PATH=$PATH:/usr/local/go/bin
@@ -137,11 +138,11 @@ stages:
       displayName: 'Setup Go Environment'
     
     - script: |
-        cd TranscoderService
         export PATH=$PATH:/usr/local/go/bin
         export GOPATH=$HOME/go
         
         echo "Current directory: $(pwd)"
+        echo "Directory contents:"
         ls -la
         
         go mod download
@@ -160,8 +161,8 @@ stages:
         containerRegistry: $(dockerRegistryServiceConnection)
         repository: $(imageRepository)/streamhive-transcoder-service
         command: 'buildAndPush'
-        Dockerfile: 'TranscoderService/Dockerfile'
-        buildContext: 'TranscoderService'
+        Dockerfile: 'Dockerfile'
+        buildContext: '.'
         tags: |
           $(Build.BuildNumber)
           latest
@@ -172,7 +173,7 @@ stages:
       name: 'Default'
     steps:
     - checkout: videocatalog
-
+    
     - script: |
         echo "Setting up Go environment..."
         export PATH=$PATH:/usr/local/go/bin
@@ -187,11 +188,11 @@ stages:
       displayName: 'Setup Go Environment'
     
     - script: |
-        cd VideoCatalogService
         export PATH=$PATH:/usr/local/go/bin
         export GOPATH=$HOME/go
         
         echo "Current directory: $(pwd)"
+        echo "Directory contents:"
         ls -la
         
         go mod download
@@ -210,8 +211,8 @@ stages:
         containerRegistry: $(dockerRegistryServiceConnection)
         repository: $(imageRepository)/streamhive-video-catalog-service
         command: 'buildAndPush'
-        Dockerfile: 'VideoCatalogService/Dockerfile'
-        buildContext: 'VideoCatalogService'
+        Dockerfile: 'Dockerfile'
+        buildContext: '.'
         tags: |
           $(Build.BuildNumber)
           latest
@@ -237,11 +238,11 @@ stages:
       displayName: 'Setup Go Environment'
     
     - script: |
-        cd PlaybackService
         export PATH=$PATH:/usr/local/go/bin
         export GOPATH=$HOME/go
         
         echo "Current directory: $(pwd)"
+        echo "Directory contents:"
         ls -la
         
         go mod download
@@ -260,8 +261,8 @@ stages:
         containerRegistry: $(dockerRegistryServiceConnection)
         repository: $(imageRepository)/streamhive-playback-service
         command: 'buildAndPush'
-        Dockerfile: 'PlaybackService/Dockerfile'
-        buildContext: 'PlaybackService'
+        Dockerfile: 'Dockerfile'
+        buildContext: '.'
         tags: |
           $(Build.BuildNumber)
           latest
