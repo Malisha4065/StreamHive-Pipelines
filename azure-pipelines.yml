@@ -70,7 +70,7 @@ stages:
         echo "Current directory: $(pwd)"
         echo "Directory contents:"
         ls -la
-        npm ci
+        npm install
         npx vite build
       displayName: 'Build Frontend'
     
