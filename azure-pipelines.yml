@@ -63,9 +63,16 @@ stages:
         versionSpec: '18.x'
     
     - script: |
+        npm cache clean --force
+      displayName: 'Clear npm cache'
+
+    - script: |
         cd Frontend
+        echo "Current directory: $(pwd)"
+        echo "Directory contents:"
+        ls -la
         npm ci
-        npm run build
+        npx vite build
       displayName: 'Build Frontend'
     
     - task: Docker@2
