@@ -18,6 +18,34 @@ variables:
   imageRepository: 'malisha'
   buildConfiguration: 'Release'
 
+resources:
+  repositories:
+  - repository: frontend
+    type: github
+    name: Malisha4065/StreamHive-Frontend
+    ref: main
+    endpoint: Malisha4065
+  - repository: upload
+    type: github
+    name: Malisha4065/StreamHive-UploadService
+    ref: main
+    endpoint: Malisha4065
+  - repository: transcoder
+    type: github
+    name: Malisha4065/StreamHive-TranscoderService
+    ref: main
+    endpoint: Malisha4065
+  - repository: videocatalog
+    type: github
+    name: Malisha4065/StreamHive-VideoCatalogService
+    ref: main
+    endpoint: Malisha4065
+  - repository: playback
+    type: github
+    name: Malisha4065/StreamHive-PlaybackService
+    ref: main
+    endpoint: Malisha4065
+
 stages:
 - stage: BuildAndPushImages
   displayName: 'Build and Push All Docker Images'
@@ -28,6 +56,7 @@ stages:
     pool:
       name: 'Default'
     steps:
+    - checkout: frontend
     - task: NodeTool@0
       displayName: 'Install Node.js'
       inputs:
@@ -56,6 +85,7 @@ stages:
     pool:
       name: 'Default'
     steps:
+    - checkout: upload
     - task: NodeTool@0
       displayName: 'Install Node.js'
       inputs:
@@ -84,6 +114,7 @@ stages:
     pool:
       name: 'Default'
     steps:
+    - checkout: transcoder
     - task: Go@0
       displayName: 'Install Go'
       inputs:
@@ -115,6 +146,7 @@ stages:
     pool:
       name: 'Default'
     steps:
+    - checkout: videocatalog
     - task: Go@0
       displayName: 'Install Go'
       inputs:
@@ -146,6 +178,7 @@ stages:
     pool:
       name: 'Default'
     steps:
+    - checkout: playback
     - task: Go@0
       displayName: 'Install Go'
       inputs:
