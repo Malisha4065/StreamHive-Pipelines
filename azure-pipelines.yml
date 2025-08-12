@@ -122,18 +122,36 @@ stages:
       name: 'Default'
     steps:
     - checkout: transcoder
-    - task: Go@0
-      displayName: 'Install Go'
-      inputs:
-        version: '1.23.0'
+
+    - script: |
+        echo "Setting up Go environment..."
+        export PATH=$PATH:/usr/local/go/bin
+        export GOPATH=$HOME/go
+        export PATH=$PATH:$GOPATH/bin
+        
+        echo "Go version:"
+        go version
+        
+        echo "Go environment:"
+        go env
+      displayName: 'Setup Go Environment'
     
     - script: |
         cd TranscoderService
+        export PATH=$PATH:/usr/local/go/bin
+        export GOPATH=$HOME/go
+        
+        echo "Current directory: $(pwd)"
+        ls -la
+        
         go mod download
         go mod verify
         go vet ./...
         go test ./... || echo "Tests completed with warnings"
         CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bin/transcoder ./cmd/transcoder
+        
+        echo "Build artifacts:"
+        ls -la bin/
       displayName: 'Build and Test Transcoder Service'
     
     - task: Docker@2
@@ -154,18 +172,36 @@ stages:
       name: 'Default'
     steps:
     - checkout: videocatalog
-    - task: Go@0
-      displayName: 'Install Go'
-      inputs:
-        version: '1.23.0'
+
+    - script: |
+        echo "Setting up Go environment..."
+        export PATH=$PATH:/usr/local/go/bin
+        export GOPATH=$HOME/go
+        export PATH=$PATH:$GOPATH/bin
+        
+        echo "Go version:"
+        go version
+        
+        echo "Go environment:"
+        go env
+      displayName: 'Setup Go Environment'
     
     - script: |
         cd VideoCatalogService
+        export PATH=$PATH:/usr/local/go/bin
+        export GOPATH=$HOME/go
+        
+        echo "Current directory: $(pwd)"
+        ls -la
+        
         go mod download
         go mod verify
         go vet ./...
         go test ./... || echo "Tests completed with warnings"
         CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bin/video-catalog ./cmd/api
+        
+        echo "Build artifacts:"
+        ls -la bin/
       displayName: 'Build and Test Video Catalog Service'
     
     - task: Docker@2
@@ -186,18 +222,36 @@ stages:
       name: 'Default'
     steps:
     - checkout: playback
-    - task: Go@0
-      displayName: 'Install Go'
-      inputs:
-        version: '1.23.0'
+    
+    - script: |
+        echo "Setting up Go environment..."
+        export PATH=$PATH:/usr/local/go/bin
+        export GOPATH=$HOME/go
+        export PATH=$PATH:$GOPATH/bin
+        
+        echo "Go version:"
+        go version
+        
+        echo "Go environment:"
+        go env
+      displayName: 'Setup Go Environment'
     
     - script: |
         cd PlaybackService
+        export PATH=$PATH:/usr/local/go/bin
+        export GOPATH=$HOME/go
+        
+        echo "Current directory: $(pwd)"
+        ls -la
+        
         go mod download
         go mod verify
         go vet ./...
         go test ./... || echo "Tests completed with warnings"
         CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o bin/playback ./cmd/playback
+        
+        echo "Build artifacts:"
+        ls -la bin/
       displayName: 'Build and Test Playback Service'
     
     - task: Docker@2
