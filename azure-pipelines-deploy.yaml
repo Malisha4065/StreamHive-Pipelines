@@ -397,7 +397,7 @@ stages:
                   spec:
                     containers:
                     - name: upload-service
-                      image: $(imageRepository)/streamhive-upload-service:$(Build.BuildNumber)
+                      image: $(imageRepository)/streamhive-upload-service:latest
                       ports:
                       - containerPort: 3001
                       env:
@@ -444,7 +444,7 @@ stages:
                   spec:
                     containers:
                     - name: transcoder-service
-                      image: $(imageRepository)/streamhive-transcoder-service:$(Build.BuildNumber)
+                      image: $(imageRepository)/streamhive-transcoder-service:latest
                       resources:
                         requests:
                           memory: "512Mi"
@@ -482,7 +482,7 @@ stages:
                   spec:
                     containers:
                     - name: video-catalog-service
-                      image: $(imageRepository)/streamhive-video-catalog-service:$(Build.BuildNumber)
+                      image: $(imageRepository)/streamhive-video-catalog-service:latest
                       ports:
                       - containerPort: 8080
                       resources:
@@ -526,7 +526,7 @@ stages:
                   spec:
                     containers:
                     - name: playback-service
-                      image: $(imageRepository)/streamhive-playback-service:$(Build.BuildNumber)
+                      image: $(imageRepository)/streamhive-playback-service:latest
                       ports:
                       - containerPort: 8090
                       resources:
@@ -570,7 +570,7 @@ stages:
                   spec:
                     containers:
                     - name: frontend
-                      image: $(imageRepository)/streamhive-frontend:$(Build.BuildNumber)
+                      image: $(imageRepository)/streamhive-frontend:latest
                       ports:
                       - containerPort: 5173
                       resources:
@@ -626,11 +626,11 @@ stages:
         echo "==========================================="
         echo ""
         echo "Built and deployed the following services:"
-        echo "• Frontend: $(imageRepository)/streamhive-frontend:$(Build.BuildNumber)"
-        echo "• Upload Service: $(imageRepository)/streamhive-upload-service:$(Build.BuildNumber)"
-        echo "• Transcoder Service: $(imageRepository)/streamhive-transcoder-service:$(Build.BuildNumber)"
-        echo "• Video Catalog Service: $(imageRepository)/streamhive-video-catalog-service:$(Build.BuildNumber)"
-        echo "• Playback Service: $(imageRepository)/streamhive-playback-service:$(Build.BuildNumber)"
+        echo "• Frontend: $(imageRepository)/streamhive-frontend:latest"
+        echo "• Upload Service: $(imageRepository)/streamhive-upload-service:latest"
+        echo "• Transcoder Service: $(imageRepository)/streamhive-transcoder-service:latest"
+        echo "• Video Catalog Service: $(imageRepository)/streamhive-video-catalog-service:latest"
+        echo "• Playback Service: $(imageRepository)/streamhive-playback-service:latest"
         echo ""
         echo "Deployed to namespace: $(k8sNamespace)"
         echo ""
