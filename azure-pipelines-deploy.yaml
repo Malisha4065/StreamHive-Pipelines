@@ -279,6 +279,17 @@ stages:
                 REDIS_HOST: "redis"
                 REDIS_PORT: "6379"
                 
+                # RabbitMQ configuration
+                RABBITMQ_HOST: "rabbitmq"
+                RABBITMQ_PORT: "5672"
+                RABBITMQ_USERNAME: "guest"
+                
+                # Service URLs for inter-service communication
+                UPLOAD_SERVICE_URL: "http://streamhive-upload-service:3001"
+                TRANSCODER_SERVICE_URL: "http://streamhive-transcoder-service:8080"
+                VIDEO_CATALOG_SERVICE_URL: "http://streamhive-video-catalog-service:8080"
+                PLAYBACK_SERVICE_URL: "http://streamhive-playback-service:8090"
+                
                 # Application configuration
                 NODE_ENV: "production"
                 LOG_LEVEL: "info"
@@ -294,6 +305,7 @@ stages:
                 DB_PASSWORD: "streamhive_dev_password"
                 JWT_SECRET: "your-super-secret-jwt-key-for-development-only"
                 REDIS_PASSWORD: ""
+                RABBITMQ_PASSWORD: "guest"
               EOF
             displayName: 'DB and Redis Application'
 
@@ -400,9 +412,22 @@ stages:
                       image: $(imageRepository)/streamhive-upload-service:latest
                       ports:
                       - containerPort: 3001
+                      envFrom:
+                      - configMapRef:
+                          name: streamhive-config
+                      - secretRef:
+                          name: streamhive-secrets
+                      - secretRef:
+                          name: azure-storage-secrets
                       env:
                       - name: NODE_ENV
                         value: "production"
+                      - name: PORT
+                        value: "3001"
+                      volumeMounts:
+                      - name: secrets-store-inline
+                        mountPath: "/mnt/secrets-store"
+                        readOnly: true
                       resources:
                         requests:
                           memory: "256Mi"
@@ -410,6 +435,13 @@ stages:
                         limits:
                           memory: "512Mi"
                           cpu: "400m"
+                    volumes:
+                    - name: secrets-store-inline
+                      csi:
+                        driver: secrets-store.csi.k8s.io
+                        readOnly: true
+                        volumeAttributes:
+                          secretProviderClass: "streamhive-secrets"
               ---
               apiVersion: v1
               kind: Service
@@ -445,6 +477,26 @@ stages:
                     containers:
                     - name: transcoder-service
                       image: $(imageRepository)/streamhive-transcoder-service:latest
+                      envFrom:
+                      - configMapRef:
+                          name: streamhive-config
+                      - secretRef:
+                          name: streamhive-secrets
+                      - secretRef:
+                          name: azure-storage-secrets
+                      env:
+                      - name: RABBITMQ_HOST
+                        value: "rabbitmq"
+                      - name: RABBITMQ_PORT
+                        value: "5672"
+                      - name: RABBITMQ_USERNAME
+                        value: "guest"
+                      - name: RABBITMQ_PASSWORD
+                        value: "guest"
+                      volumeMounts:
+                      - name: secrets-store-inline
+                        mountPath: "/mnt/secrets-store"
+                        readOnly: true
                       resources:
                         requests:
                           memory: "512Mi"
@@ -452,6 +504,13 @@ stages:
                         limits:
                           memory: "1Gi"
                           cpu: "1000m"
+                    volumes:
+                    - name: secrets-store-inline
+                      csi:
+                        driver: secrets-store.csi.k8s.io
+                        readOnly: true
+                        volumeAttributes:
+                          secretProviderClass: "streamhive-secrets"
               ---
               apiVersion: v1
               kind: Service
@@ -485,6 +544,16 @@ stages:
                       image: $(imageRepository)/streamhive-video-catalog-service:latest
                       ports:
                       - containerPort: 8080
+                      envFrom:
+                      - configMapRef:
+                          name: streamhive-config
+                      - secretRef:
+                          name: streamhive-secrets
+                      - secretRef:
+                          name: azure-storage-secrets
+                      env:
+                      - name: PORT
+                        value: "8080"
                       resources:
                         requests:
                           memory: "256Mi"
@@ -529,6 +598,16 @@ stages:
                       image: $(imageRepository)/streamhive-playback-service:latest
                       ports:
                       - containerPort: 8090
+                      envFrom:
+                      - configMapRef:
+                          name: streamhive-config
+                      - secretRef:
+                          name: streamhive-secrets
+                      - secretRef:
+                          name: azure-storage-secrets
+                      env:
+                      - name: PORT
+                        value: "8090"
                       resources:
                         requests:
                           memory: "256Mi"
@@ -573,6 +652,18 @@ stages:
                       image: $(imageRepository)/streamhive-frontend:latest
                       ports:
                       - containerPort: 5173
+                      envFrom:
+                      - configMapRef:
+                          name: streamhive-config
+                      env:
+                      - name: PORT
+                        value: "5173"
+                      - name: VITE_API_BASE_URL
+                        value: "http://streamhive-upload-service:3001"
+                      - name: VITE_VIDEO_CATALOG_URL
+                        value: "http://streamhive-video-catalog-service:8080"
+                      - name: VITE_PLAYBACK_URL
+                        value: "http://streamhive-playback-service:8090"
                       resources:
                         requests:
                           memory: "128Mi"
