@@ -70,7 +70,7 @@ stages:
               apiVersion: secrets-store.csi.x-k8s.io/v1
               kind: SecretProviderClass
               metadata:
-                name: streamhive-secrets
+                name: azure-streamhive-secrets
                 namespace: streamhive
               spec:
                 provider: azure
@@ -424,10 +424,6 @@ stages:
                         value: "production"
                       - name: PORT
                         value: "3001"
-                      volumeMounts:
-                      - name: secrets-store-inline
-                        mountPath: "/mnt/secrets-store"
-                        readOnly: true
                       resources:
                         requests:
                           memory: "256Mi"
@@ -435,13 +431,6 @@ stages:
                         limits:
                           memory: "512Mi"
                           cpu: "400m"
-                    volumes:
-                    - name: secrets-store-inline
-                      csi:
-                        driver: secrets-store.csi.k8s.io
-                        readOnly: true
-                        volumeAttributes:
-                          secretProviderClass: "streamhive-secrets"
               ---
               apiVersion: v1
               kind: Service
@@ -493,10 +482,6 @@ stages:
                         value: "guest"
                       - name: RABBITMQ_PASSWORD
                         value: "guest"
-                      volumeMounts:
-                      - name: secrets-store-inline
-                        mountPath: "/mnt/secrets-store"
-                        readOnly: true
                       resources:
                         requests:
                           memory: "512Mi"
@@ -504,13 +489,6 @@ stages:
                         limits:
                           memory: "1Gi"
                           cpu: "1000m"
-                    volumes:
-                    - name: secrets-store-inline
-                      csi:
-                        driver: secrets-store.csi.k8s.io
-                        readOnly: true
-                        volumeAttributes:
-                          secretProviderClass: "streamhive-secrets"
               ---
               apiVersion: v1
               kind: Service
@@ -549,8 +527,6 @@ stages:
                           name: streamhive-config
                       - secretRef:
                           name: streamhive-secrets
-                      - secretRef:
-                          name: azure-storage-secrets
                       env:
                       - name: PORT
                         value: "8080"
@@ -603,8 +579,6 @@ stages:
                           name: streamhive-config
                       - secretRef:
                           name: streamhive-secrets
-                      - secretRef:
-                          name: azure-storage-secrets
                       env:
                       - name: PORT
                         value: "8090"
@@ -638,7 +612,7 @@ stages:
                 name: streamhive-frontend
                 namespace: $(k8sNamespace)
               spec:
-                replicas: 2
+                replicas: 1
                 selector:
                   matchLabels:
                     app: streamhive-frontend
@@ -652,9 +626,6 @@ stages:
                       image: $(imageRepository)/streamhive-frontend:latest
                       ports:
                       - containerPort: 5173
-                      envFrom:
-                      - configMapRef:
-                          name: streamhive-config
                       env:
                       - name: PORT
                         value: "5173"
@@ -666,11 +637,11 @@ stages:
                         value: "http://streamhive-playback-service:8090"
                       resources:
                         requests:
+                          memory: "64Mi"
+                          cpu: "50m"
+                        limits:
                           memory: "128Mi"
                           cpu: "100m"
-                        limits:
-                          memory: "256Mi"
-                          cpu: "200m"
               ---
               apiVersion: v1
               kind: Service
