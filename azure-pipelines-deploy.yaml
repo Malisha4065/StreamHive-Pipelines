@@ -76,7 +76,7 @@ stages:
                 provider: azure
                 parameters:
                   usePodIdentity: "false"
-                  useVMManagedIdentity: "true"
+                  useVMManagedIdentity: "false"  # Changed to false for manual cluster
                   userAssignedIdentityID: ""
                   keyvaultName: $(keyvaultName)
                   tenantId: $(tenantId)
@@ -366,6 +366,54 @@ stages:
                       image: $(imageRepository)/streamhive-upload-service:latest
                       ports:
                       - containerPort: 3001
+                      command: ["/bin/bash"]
+                      args:
+                        - -c
+                        - |
+                          set -e
+                          echo "Loading secrets from Key Vault..."
+                          
+                          # Wait for secrets to be mounted
+                          for i in {1..30}; do
+                            if [ -f "/mnt/secrets-store/azure-storage-connection-string" ]; then
+                              echo "Secrets found, proceeding..."
+                              break
+                            fi
+                            echo "Waiting for secrets to be mounted... (\$i/30)"
+                            sleep 5
+                          done
+                          
+                          # Load secrets into environment variables
+                          if [ -f "/mnt/secrets-store/azure-storage-connection-string" ]; then
+                            export AZURE_STORAGE_CONNECTION_STRING="\$(cat /mnt/secrets-store/azure-storage-connection-string)"
+                            echo "✓ AZURE_STORAGE_CONNECTION_STRING loaded"
+                          else
+                            echo "ERROR: azure-storage-connection-string not found"
+                            exit 1
+                          fi
+                          
+                          if [ -f "/mnt/secrets-store/azure-storage-account" ]; then
+                            export AZURE_STORAGE_ACCOUNT_NAME="\$(cat /mnt/secrets-store/azure-storage-account)"
+                            echo "✓ AZURE_STORAGE_ACCOUNT_NAME loaded"
+                          fi
+                          
+                          if [ -f "/mnt/secrets-store/azure-storage-key" ]; then
+                            export AZURE_STORAGE_ACCOUNT_KEY="\$(cat /mnt/secrets-store/azure-storage-key)"
+                            echo "✓ AZURE_STORAGE_ACCOUNT_KEY loaded"
+                          fi
+                          
+                          if [ -f "/mnt/secrets-store/azure-storage-raw-container" ]; then
+                            export AZURE_STORAGE_RAW_CONTAINER="\$(cat /mnt/secrets-store/azure-storage-raw-container)"
+                            echo "✓ AZURE_STORAGE_RAW_CONTAINER loaded"
+                          fi
+                          
+                          if [ -f "/mnt/secrets-store/azure-storage-processed-container" ]; then
+                            export AZURE_STORAGE_PROCESSED_CONTAINER="\$(cat /mnt/secrets-store/azure-storage-processed-container)"
+                            echo "✓ AZURE_STORAGE_PROCESSED_CONTAINER loaded"
+                          fi
+                          
+                          echo "Starting Upload Service..."
+                          exec npm start
                       volumeMounts:
                       - name: secrets-store
                         mountPath: "/mnt/secrets-store"
@@ -386,16 +434,6 @@ stages:
                         value: "streamhive"
                       - name: AMQP_UPLOAD_ROUTING_KEY
                         value: "video.uploaded"
-                      - name: AZURE_STORAGE_CONNECTION_STRING
-                        value: "/mnt/secrets-store/azure-storage-connection-string"
-                      - name: AZURE_STORAGE_ACCOUNT_NAME
-                        value: "/mnt/secrets-store/azure-storage-account"
-                      - name: AZURE_STORAGE__ACCOUNT_KEY
-                        value: "/mnt/secrets-store/azure-storage-key"
-                      - name: AZURE_STORAGE_RAW_CONTAINER
-                        value: "/mnt/secrets-store/azure-storage-raw-container"
-                      - name: AZURE_STORAGE_PROCESSED_CONTAINER
-                        value: "/mnt/secrets-store/azure-storage-raw-container"
                       - name: MAX_FILE_SIZE
                         value: "1073741824"
                       - name: ALLOWED_FORMATS
@@ -449,6 +487,51 @@ stages:
                     containers:
                     - name: transcoder-service
                       image: $(imageRepository)/streamhive-transcoder-service:latest
+                      command: ["/bin/bash"]
+                      args:
+                        - -c
+                        - |
+                          set -e
+                          echo "Loading secrets from Key Vault..."
+                          
+                          # Wait for secrets to be mounted
+                          for i in {1..30}; do
+                            if [ -f "/mnt/secrets-store/azure-storage-account" ]; then
+                              echo "Secrets found, proceeding..."
+                              break
+                            fi
+                            echo "Waiting for secrets to be mounted... (\$i/30)"
+                            sleep 5
+                          done
+                          
+                          # Load secrets into environment variables
+                          if [ -f "/mnt/secrets-store/azure-storage-account" ]; then
+                            export AZURE_STORAGE_ACCOUNT="\$(cat /mnt/secrets-store/azure-storage-account)"
+                            echo "✓ AZURE_STORAGE_ACCOUNT loaded"
+                          fi
+                          
+                          if [ -f "/mnt/secrets-store/azure-storage-key" ]; then
+                            export AZURE_STORAGE_KEY="\$(cat /mnt/secrets-store/azure-storage-key)"
+                            echo "✓ AZURE_STORAGE_KEY loaded"
+                          fi
+                          
+                          if [ -f "/mnt/secrets-store/azure-storage-raw-container" ]; then
+                            export AZURE_BLOB_CONTAINER="\$(cat /mnt/secrets-store/azure-storage-raw-container)"
+                            echo "✓ AZURE_BLOB_CONTAINER loaded"
+                          fi
+                          
+                          if [ -f "/mnt/secrets-store/azure-storage-connection-string" ]; then
+                            export AZURE_PUBLIC_BASE="\$(cat /mnt/secrets-store/azure-storage-connection-string)"
+                            echo "✓ AZURE_PUBLIC_BASE loaded"
+                          fi
+                          
+                          if [ -f "/mnt/secrets-store/azure-storage-processed-container" ]; then
+                            export AZURE_STORAGE_PROCESSED_CONTAINER="\$(cat /mnt/secrets-store/azure-storage-processed-container)"
+                            echo "✓ AZURE_STORAGE_PROCESSED_CONTAINER loaded"
+                          fi
+                          
+                          echo "Starting Transcoder Service..."
+                          exec /app/transcoder
                       volumeMounts:
                       - name: secrets-store
                         mountPath: "/mnt/secrets-store"
@@ -466,16 +549,6 @@ stages:
                         value: "transcoder.video.uploaded"
                       - name: CONCURRENCY
                         value: "1"
-                      - name: AZURE_STORAGE_ACCOUNT
-                        value: "/mnt/secrets-store/azure-storage-account"
-                      - name: AZURE_STORAGE_KEY
-                        value: "/mnt/secrets-store/azure-storage-key"
-                      - name: AZURE_BLOB_CONTAINER
-                        value: "/mnt/secrets-store/azure-storage-raw-container"
-                      - name: AZURE_PUBLIC_BASE
-                        value: "/mnt/secrets-store/azure-storage-connection-string"
-                      - name: AZURE_STORAGE_PROCESSED_CONTAINER
-                        value: "/mnt/secrets-store/azure-storage-raw-container"
                       - name: LOG_LEVEL
                         value: "info"
                       resources:
@@ -525,6 +598,46 @@ stages:
                       image: $(imageRepository)/streamhive-video-catalog-service:latest
                       ports:
                       - containerPort: 8080
+                      command: ["/bin/bash"]
+                      args:
+                        - -c
+                        - |
+                          set -e
+                          echo "Loading secrets from Key Vault..."
+                          
+                          # Wait for secrets to be mounted
+                          for i in {1..30}; do
+                            if [ -f "/mnt/secrets-store/azure-storage-connection-string" ]; then
+                              echo "Secrets found, proceeding..."
+                              break
+                            fi
+                            echo "Waiting for secrets to be mounted... (\$i/30)"
+                            sleep 5
+                          done
+                          
+                          # Load secrets into environment variables
+                          if [ -f "/mnt/secrets-store/azure-storage-connection-string" ]; then
+                            export AZURE_STORAGE_CONNECTION_STRING="\$(cat /mnt/secrets-store/azure-storage-connection-string)"
+                            echo "✓ AZURE_STORAGE_CONNECTION_STRING loaded"
+                          fi
+                          
+                          if [ -f "/mnt/secrets-store/azure-storage-account" ]; then
+                            export AZURE_STORAGE_ACCOUNT="\$(cat /mnt/secrets-store/azure-storage-account)"
+                            echo "✓ AZURE_STORAGE_ACCOUNT loaded"
+                          fi
+                          
+                          if [ -f "/mnt/secrets-store/azure-storage-key" ]; then
+                            export AZURE_STORAGE_KEY="\$(cat /mnt/secrets-store/azure-storage-key)"
+                            echo "✓ AZURE_STORAGE_KEY loaded"
+                          fi
+                          
+                          if [ -f "/mnt/secrets-store/azure-storage-raw-container" ]; then
+                            export AZURE_BLOB_CONTAINER="\$(cat /mnt/secrets-store/azure-storage-raw-container)"
+                            echo "✓ AZURE_BLOB_CONTAINER loaded"
+                          fi
+                          
+                          echo "Starting Video Catalog Service..."
+                          exec /app/video-catalog-service
                       volumeMounts:
                       - name: secrets-store
                         mountPath: "/mnt/secrets-store"
@@ -557,14 +670,6 @@ stages:
                         value: "video-catalog.video.uploaded"
                       - name: AMQP_UPLOAD_ROUTING_KEY
                         value: "video.uploaded"
-                      - name: AZURE_STORAGE_CONNECTION_STRING
-                        value: "/mnt/secrets-store/azure-storage-connection-string"
-                      - name: AZURE_STORAGE_ACCOUNT
-                        value: "/mnt/secrets-store/azure-storage-account"
-                      - name: AZURE_STORAGE_KEY
-                        value: "/mnt/secrets-store/azure-storage-key"
-                      - name: AZURE_BLOB_CONTAINER
-                        value: "/mnt/secrets-store/azure-storage-raw-container"
                       - name: PORT
                         value: "8080"
                       resources:
@@ -618,6 +723,46 @@ stages:
                       image: $(imageRepository)/streamhive-playback-service:latest
                       ports:
                       - containerPort: 8090
+                      command: ["/bin/bash"]
+                      args:
+                        - -c
+                        - |
+                          set -e
+                          echo "Loading secrets from Key Vault..."
+                          
+                          # Wait for secrets to be mounted
+                          for i in {1..30}; do
+                            if [ -f "/mnt/secrets-store/azure-storage-connection-string" ]; then
+                              echo "Secrets found, proceeding..."
+                              break
+                            fi
+                            echo "Waiting for secrets to be mounted... (\$i/30)"
+                            sleep 5
+                          done
+                          
+                          # Load secrets into environment variables
+                          if [ -f "/mnt/secrets-store/azure-storage-connection-string" ]; then
+                            export AZURE_STORAGE_CONNECTION_STRING="\$(cat /mnt/secrets-store/azure-storage-connection-string)"
+                            echo "✓ AZURE_STORAGE_CONNECTION_STRING loaded"
+                          fi
+                          
+                          if [ -f "/mnt/secrets-store/azure-storage-account" ]; then
+                            export AZURE_STORAGE_ACCOUNT="\$(cat /mnt/secrets-store/azure-storage-account)"
+                            echo "✓ AZURE_STORAGE_ACCOUNT loaded"
+                          fi
+                          
+                          if [ -f "/mnt/secrets-store/azure-storage-key" ]; then
+                            export AZURE_STORAGE_KEY="\$(cat /mnt/secrets-store/azure-storage-key)"
+                            echo "✓ AZURE_STORAGE_KEY loaded"
+                          fi
+                          
+                          if [ -f "/mnt/secrets-store/azure-storage-raw-container" ]; then
+                            export AZURE_BLOB_CONTAINER="\$(cat /mnt/secrets-store/azure-storage-raw-container)"
+                            echo "✓ AZURE_BLOB_CONTAINER loaded"
+                          fi
+                          
+                          echo "Starting Playback Service..."
+                          exec /app/playback-service
                       volumeMounts:
                       - name: secrets-store
                         mountPath: "/mnt/secrets-store"
@@ -640,14 +785,6 @@ stages:
                         value: "disable"
                       - name: PORT
                         value: "8090"
-                      - name: AZURE_STORAGE_CONNECTION_STRING
-                        value: "/mnt/secrets-store/azure-storage-connection-string"
-                      - name: AZURE_STORAGE_ACCOUNT
-                        value: "/mnt/secrets-store/azure-storage-account"
-                      - name: AZURE_STORAGE_KEY
-                        value: "/mnt/secrets-store/azure-storage-key"
-                      - name: AZURE_BLOB_CONTAINER
-                        value: "/mnt/secrets-store/azure-storage-raw-container"
                       - name: REDIS_HOST
                         value: "redis"
                       - name: REDIS_PORT
@@ -725,63 +862,3 @@ stages:
                           cpu: "100m"
               ---
               apiVersion: v1
-              kind: Service
-              metadata:
-                name: streamhive-frontend-service
-                namespace: $(k8sNamespace)
-              spec:
-                selector:
-                  app: streamhive-frontend
-                ports:
-                - port: 5173
-                  targetPort: 5173
-                type: NodePort
-              EOF
-            displayName: 'Deplyoment Step'
-
-          - script: |              
-              echo "Waiting for deployments to be ready..."
-              kubectl wait --for=condition=available --timeout=300s deployment/streamhive-frontend -n $(k8sNamespace)
-              kubectl wait --for=condition=available --timeout=300s deployment/streamhive-upload-service -n $(k8sNamespace)
-              kubectl wait --for=condition=available --timeout=300s deployment/streamhive-transcoder-service -n $(k8sNamespace)
-              kubectl wait --for=condition=available --timeout=300s deployment/streamhive-video-catalog-service -n $(k8sNamespace)
-              kubectl wait --for=condition=available --timeout=300s deployment/streamhive-playback-service -n $(k8sNamespace)
-              
-              echo "Deployment Status:"
-              kubectl get pods -n $(k8sNamespace)
-              kubectl get services -n $(k8sNamespace)
-            displayName: 'Verify Deployment'
-
-- stage: Summary
-  displayName: 'Deployment Summary'
-  dependsOn:
-  - DeployToKubernetes
-  condition: always()
-  jobs:
-  - job: DeploymentSummary
-    displayName: 'Display Deployment Summary'
-    pool:
-      name: 'Default'
-    steps:
-    - script: |
-        echo "===========================================" 
-        echo "StreamHive Deployment Complete!"
-        echo "==========================================="
-        echo ""
-        echo "Built and deployed the following services:"
-        echo "• Frontend: $(imageRepository)/streamhive-frontend:latest"
-        echo "• Upload Service: $(imageRepository)/streamhive-upload-service:latest"
-        echo "• Transcoder Service: $(imageRepository)/streamhive-transcoder-service:latest"
-        echo "• Video Catalog Service: $(imageRepository)/streamhive-video-catalog-service:latest"
-        echo "• Playback Service: $(imageRepository)/streamhive-playback-service:latest"
-        echo ""
-        echo "Deployed to namespace: $(k8sNamespace)"
-        echo ""
-        echo "To check your deployment:"
-        echo "kubectl get pods -n $(k8sNamespace)"
-        echo "kubectl get services -n $(k8sNamespace)"
-        echo ""
-        echo "To access the frontend:"
-        echo "kubectl get service streamhive-frontend-service -n $(k8sNamespace)"
-        echo ""
-      displayName: 'Deployment Summary'
