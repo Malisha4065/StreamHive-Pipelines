@@ -388,9 +388,9 @@ stages:
                         value: "video.uploaded"
                       - name: AZURE_STORAGE_CONNECTION_STRING
                         value: "/mnt/secrets-store/azure-storage-connection-string"
-                      - name: AZURE_STORAGE_ACCOUNT
+                      - name: AZURE_STORAGE_ACCOUNT_NAME
                         value: "/mnt/secrets-store/azure-storage-account"
-                      - name: AZURE_STORAGE_KEY
+                      - name: AZURE_STORAGE__ACCOUNT_KEY
                         value: "/mnt/secrets-store/azure-storage-key"
                       - name: AZURE_STORAGE_RAW_CONTAINER
                         value: "/mnt/secrets-store/azure-storage-raw-container"
