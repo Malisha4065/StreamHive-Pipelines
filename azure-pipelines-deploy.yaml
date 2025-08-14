@@ -380,6 +380,10 @@ stages:
                       image: $(imageRepository)/streamhive-upload-service:latest
                       ports:
                       - containerPort: 3001
+                      volumeMounts:
+                      - name: secrets-store
+                        mountPath: "/mnt/secrets-store"
+                        readOnly: true
                       envFrom:
                       - secretRef:
                           name: azure-storage-secrets
@@ -415,6 +419,13 @@ stages:
                         limits:
                           memory: "512Mi"
                           cpu: "400m"
+                    volumes:
+                    - name: secrets-store
+                      csi:
+                        driver: secrets-store.csi.k8s.io
+                        readOnly: true
+                        volumeAttributes:
+                          secretProviderClass: "azure-streamhive-secrets"
               ---
               apiVersion: v1
               kind: Service
@@ -450,6 +461,10 @@ stages:
                     containers:
                     - name: transcoder-service
                       image: $(imageRepository)/streamhive-transcoder-service:latest
+                      volumeMounts:
+                      - name: secrets-store
+                        mountPath: "/mnt/secrets-store"
+                        readOnly: true
                       envFrom:
                       - secretRef:
                           name: azure-storage-secrets
@@ -482,6 +497,13 @@ stages:
                         limits:
                           memory: "1Gi"
                           cpu: "1000m"
+                    volumes:
+                    - name: secrets-store
+                      csi:
+                        driver: secrets-store.csi.k8s.io
+                        readOnly: true
+                        volumeAttributes:
+                          secretProviderClass: "azure-streamhive-secrets"
               ---
               apiVersion: v1
               kind: Service
@@ -515,6 +537,10 @@ stages:
                       image: $(imageRepository)/streamhive-video-catalog-service:latest
                       ports:
                       - containerPort: 8080
+                      volumeMounts:
+                      - name: secrets-store
+                        mountPath: "/mnt/secrets-store"
+                        readOnly: true
                       envFrom:
                       - secretRef:
                           name: azure-storage-secrets
@@ -560,6 +586,13 @@ stages:
                         limits:
                           memory: "512Mi"
                           cpu: "400m"
+                    volumes:
+                    - name: secrets-store
+                      csi:
+                        driver: secrets-store.csi.k8s.io
+                        readOnly: true
+                        volumeAttributes:
+                          secretProviderClass: "azure-streamhive-secrets"
               ---
               apiVersion: v1
               kind: Service
@@ -597,6 +630,10 @@ stages:
                       image: $(imageRepository)/streamhive-playback-service:latest
                       ports:
                       - containerPort: 8090
+                      volumeMounts:
+                      - name: secrets-store
+                        mountPath: "/mnt/secrets-store"
+                        readOnly: true
                       envFrom:
                       - secretRef:
                           name: azure-storage-secrets
@@ -638,6 +675,13 @@ stages:
                         limits:
                           memory: "512Mi"
                           cpu: "400m"
+                    volumes:
+                    - name: secrets-store
+                      csi:
+                        driver: secrets-store.csi.k8s.io
+                        readOnly: true
+                        volumeAttributes:
+                          secretProviderClass: "azure-streamhive-secrets"
               ---
               apiVersion: v1
               kind: Service
