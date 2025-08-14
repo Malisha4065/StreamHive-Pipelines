@@ -386,15 +386,15 @@ stages:
                         value: "streamhive"
                       - name: AMQP_UPLOAD_ROUTING_KEY
                         value: "video.uploaded"
-                      - name: AZURE_STORAGE_CONNECTION_STRING_FILE
+                      - name: AZURE_STORAGE_CONNECTION_STRING
                         value: "/mnt/secrets-store/azure-storage-connection-string"
-                      - name: AZURE_STORAGE_ACCOUNT_FILE
+                      - name: AZURE_STORAGE_ACCOUNT
                         value: "/mnt/secrets-store/azure-storage-account"
-                      - name: AZURE_STORAGE_KEY_FILE
+                      - name: AZURE_STORAGE_KEY
                         value: "/mnt/secrets-store/azure-storage-key"
-                      - name: AZURE_STORAGE_RAW_CONTAINER_FILE
+                      - name: AZURE_STORAGE_RAW_CONTAINER
                         value: "/mnt/secrets-store/azure-storage-raw-container"
-                      - name: AZURE_STORAGE_PROCESSED_CONTAINER_FILE
+                      - name: AZURE_STORAGE_PROCESSED_CONTAINER
                         value: "/mnt/secrets-store/azure-storage-raw-container"
                       - name: MAX_FILE_SIZE
                         value: "1073741824"
@@ -466,15 +466,15 @@ stages:
                         value: "transcoder.video.uploaded"
                       - name: CONCURRENCY
                         value: "1"
-                      - name: AZURE_STORAGE_ACCOUNT_FILE
+                      - name: AZURE_STORAGE_ACCOUNT
                         value: "/mnt/secrets-store/azure-storage-account"
-                      - name: AZURE_STORAGE_KEY_FILE
+                      - name: AZURE_STORAGE_KEY
                         value: "/mnt/secrets-store/azure-storage-key"
-                      - name: AZURE_BLOB_CONTAINER_FILE
+                      - name: AZURE_BLOB_CONTAINER
                         value: "/mnt/secrets-store/azure-storage-raw-container"
-                      - name: AZURE_PUBLIC_BASE_ACCOUNT_FILE
-                        value: "/mnt/secrets-store/azure-storage-account"
-                      - name: AZURE_PUBLIC_BASE_CONTAINER_FILE
+                      - name: AZURE_PUBLIC_BASE
+                        value: "/mnt/secrets-store/azure-storage-connection-string"
+                      - name: AZURE_STORAGE_PROCESSED_CONTAINER
                         value: "/mnt/secrets-store/azure-storage-raw-container"
                       - name: LOG_LEVEL
                         value: "info"
@@ -557,13 +557,13 @@ stages:
                         value: "video-catalog.video.uploaded"
                       - name: AMQP_UPLOAD_ROUTING_KEY
                         value: "video.uploaded"
-                      - name: AZURE_STORAGE_CONNECTION_STRING_FILE
+                      - name: AZURE_STORAGE_CONNECTION_STRING
                         value: "/mnt/secrets-store/azure-storage-connection-string"
-                      - name: AZURE_STORAGE_ACCOUNT_FILE
+                      - name: AZURE_STORAGE_ACCOUNT
                         value: "/mnt/secrets-store/azure-storage-account"
-                      - name: AZURE_STORAGE_KEY_FILE
+                      - name: AZURE_STORAGE_KEY
                         value: "/mnt/secrets-store/azure-storage-key"
-                      - name: AZURE_BLOB_CONTAINER_FILE
+                      - name: AZURE_BLOB_CONTAINER
                         value: "/mnt/secrets-store/azure-storage-raw-container"
                       - name: PORT
                         value: "8080"
@@ -640,13 +640,13 @@ stages:
                         value: "disable"
                       - name: PORT
                         value: "8090"
-                      - name: AZURE_STORAGE_CONNECTION_STRING_FILE
+                      - name: AZURE_STORAGE_CONNECTION_STRING
                         value: "/mnt/secrets-store/azure-storage-connection-string"
-                      - name: AZURE_STORAGE_ACCOUNT_FILE
+                      - name: AZURE_STORAGE_ACCOUNT
                         value: "/mnt/secrets-store/azure-storage-account"
-                      - name: AZURE_STORAGE_KEY_FILE
+                      - name: AZURE_STORAGE_KEY
                         value: "/mnt/secrets-store/azure-storage-key"
-                      - name: AZURE_BLOB_CONTAINER_FILE
+                      - name: AZURE_BLOB_CONTAINER
                         value: "/mnt/secrets-store/azure-storage-raw-container"
                       - name: REDIS_HOST
                         value: "redis"
