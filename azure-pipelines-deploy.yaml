@@ -18,8 +18,8 @@ variables:
   imageRepository: 'malisha'
   buildConfiguration: 'Release'
   k8sNamespace: 'streamhive'
-  keyvaultName: "#{KEYVAULT_NAME}#"
-  tenantId: "#{TENANT_ID}#"
+  keyvaultName: "${KEYVAULT_NAME}"
+  tenantId: "${TENANT_ID}"
 
 resources:
   repositories:
