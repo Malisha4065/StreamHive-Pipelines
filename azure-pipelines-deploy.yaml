@@ -612,8 +612,7 @@ stages:
 
 - stage: Summary
   displayName: 'Deployment Summary'
-  dependsOn: 
-  - BuildAndPushImages
+  dependsOn:
   - DeployToKubernetes
   condition: always()
   jobs:
