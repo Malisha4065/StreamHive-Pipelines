@@ -116,6 +116,20 @@ stages:
                     key: "AZURE_STORAGE_RAW_CONTAINER"
                   - objectName: "azure-storage-processed-container"
                     key: "AZURE_STORAGE_PROCESSED_CONTAINER"
+
+              ---
+              # Secret for sensitive data
+              apiVersion: v1
+              kind: Secret
+              metadata:
+                name: streamhive-secrets
+                namespace: streamhive
+              type: Opaque
+              stringData:
+                DB_PASSWORD: "streamhive_dev_password"
+                JWT_SECRET: "your-super-secret-jwt-key-for-development-only"
+                REDIS_PASSWORD: ""
+                RABBITMQ_PASSWORD: "guest"
               EOF
             displayName: 'Apply secrets'
 
@@ -260,52 +274,6 @@ stages:
                   targetPort: 6379
                   name: redis
                 type: ClusterIP
-
-              ---
-              # ConfigMap for shared configuration
-              apiVersion: v1
-              kind: ConfigMap
-              metadata:
-                name: streamhive-config
-                namespace: streamhive
-              data:
-                # Database configuration
-                DB_HOST: "postgres"
-                DB_PORT: "5432"
-                DB_NAME: "video_catalog"
-                DB_USER: "postgres"
-                
-                # Redis configuration
-                REDIS_HOST: "redis"
-                REDIS_PORT: "6379"
-                
-                # RabbitMQ configuration
-                RABBITMQ_HOST: "rabbitmq"
-                RABBITMQ_PORT: "5672"
-                RABBITMQ_USERNAME: "guest"
-                
-                # Service URLs for inter-service communication
-                UPLOAD_SERVICE_URL: "http://streamhive-upload-service:3001"
-                TRANSCODER_SERVICE_URL: "http://streamhive-transcoder-service:8080"
-                VIDEO_CATALOG_SERVICE_URL: "http://streamhive-video-catalog-service:8080"
-                PLAYBACK_SERVICE_URL: "http://streamhive-playback-service:8090"
-                
-                # Application configuration
-                NODE_ENV: "production"
-                LOG_LEVEL: "info"
-              ---
-              # Secret for sensitive data
-              apiVersion: v1
-              kind: Secret
-              metadata:
-                name: streamhive-secrets
-                namespace: streamhive
-              type: Opaque
-              stringData:
-                DB_PASSWORD: "streamhive_dev_password"
-                JWT_SECRET: "your-super-secret-jwt-key-for-development-only"
-                REDIS_PASSWORD: ""
-                RABBITMQ_PASSWORD: "guest"
               EOF
             displayName: 'DB and Redis Application'
 
@@ -330,7 +298,7 @@ stages:
                   spec:
                     containers:
                     - name: rabbitmq
-                      image: rabbitmq:3.12-management-alpine
+                      image: rabbitmq:4.0-management
                       ports:
                       - containerPort: 5672
                         name: amqp
@@ -413,17 +381,33 @@ stages:
                       ports:
                       - containerPort: 3001
                       envFrom:
-                      - configMapRef:
-                          name: streamhive-config
-                      - secretRef:
-                          name: streamhive-secrets
                       - secretRef:
                           name: azure-storage-secrets
                       env:
-                      - name: NODE_ENV
-                        value: "production"
                       - name: PORT
                         value: "3001"
+                      - name: NODE_ENV
+                        value: "production"
+                      - name: JWT_SECRET
+                        valueFrom:
+                          secretKeyRef:
+                            name: streamhive-secrets
+                            key: JWT_SECRET
+                      - name: RABBITMQ_URL
+                        value: "amqp://guest:guest@rabbitmq:5672/"
+                      - name: AMQP_EXCHANGE
+                        value: "streamhive"
+                      - name: AMQP_UPLOAD_ROUTING_KEY
+                        value: "video.uploaded"
+                      - name: AZURE_STORAGE_PROCESSED_CONTAINER
+                        valueFrom:
+                          secretKeyRef:
+                            name: azure-storage-secrets
+                            key: AZURE_STORAGE_RAW_CONTAINER
+                      - name: MAX_FILE_SIZE
+                        value: "1073741824"
+                      - name: ALLOWED_FORMATS
+                        value: "mp4,mov,avi,webm"
                       resources:
                         requests:
                           memory: "256Mi"
@@ -467,21 +451,30 @@ stages:
                     - name: transcoder-service
                       image: $(imageRepository)/streamhive-transcoder-service:latest
                       envFrom:
-                      - configMapRef:
-                          name: streamhive-config
-                      - secretRef:
-                          name: streamhive-secrets
                       - secretRef:
                           name: azure-storage-secrets
                       env:
-                      - name: RABBITMQ_HOST
-                        value: "rabbitmq"
-                      - name: RABBITMQ_PORT
-                        value: "5672"
-                      - name: RABBITMQ_USERNAME
-                        value: "guest"
-                      - name: RABBITMQ_PASSWORD
-                        value: "guest"
+                      - name: AMQP_URL
+                        value: "amqp://guest:guest@rabbitmq:5672/"
+                      - name: AMQP_EXCHANGE
+                        value: "streamhive"
+                      - name: AMQP_UPLOAD_ROUTING_KEY
+                        value: "video.uploaded"
+                      - name: AMQP_TRANSCODED_ROUTING_KEY
+                        value: "video.transcoded"
+                      - name: AMQP_QUEUE
+                        value: "transcoder.video.uploaded"
+                      - name: CONCURRENCY
+                        value: "1"
+                      - name: AZURE_BLOB_CONTAINER
+                        valueFrom:
+                          secretKeyRef:
+                            name: azure-storage-secrets
+                            key: AZURE_STORAGE_RAW_CONTAINER
+                      - name: AZURE_PUBLIC_BASE
+                        value: "https://$(AZURE_STORAGE_ACCOUNT).blob.core.windows.net/$(AZURE_STORAGE_RAW_CONTAINER)"
+                      - name: LOG_LEVEL
+                        value: "info"
                       resources:
                         requests:
                           memory: "512Mi"
@@ -523,11 +516,41 @@ stages:
                       ports:
                       - containerPort: 8080
                       envFrom:
-                      - configMapRef:
-                          name: streamhive-config
                       - secretRef:
-                          name: streamhive-secrets
+                          name: azure-storage-secrets
                       env:
+                      - name: DB_HOST
+                        value: "postgres"
+                      - name: DB_PORT
+                        value: "5432"
+                      - name: DB_USER
+                        value: "postgres"
+                      - name: DB_PASSWORD
+                        valueFrom:
+                          secretKeyRef:
+                            name: streamhive-secrets
+                            key: DB_PASSWORD
+                      - name: DB_NAME
+                        value: "video_catalog"
+                      - name: DB_SSLMODE
+                        value: "disable"
+                      - name: AMQP_URL
+                        value: "amqp://guest:guest@rabbitmq:5672/"
+                      - name: AMQP_EXCHANGE
+                        value: "streamhive"
+                      - name: AMQP_QUEUE
+                        value: "video-catalog.video.transcoded"
+                      - name: AMQP_ROUTING_KEY
+                        value: "video.transcoded"
+                      - name: AMQP_UPLOAD_QUEUE
+                        value: "video-catalog.video.uploaded"
+                      - name: AMQP_UPLOAD_ROUTING_KEY
+                        value: "video.uploaded"
+                      - name: AZURE_BLOB_CONTAINER
+                        valueFrom:
+                          secretKeyRef:
+                            name: azure-storage-secrets
+                            key: AZURE_STORAGE_RAW_CONTAINER
                       - name: PORT
                         value: "8080"
                       resources:
@@ -575,13 +598,39 @@ stages:
                       ports:
                       - containerPort: 8090
                       envFrom:
-                      - configMapRef:
-                          name: streamhive-config
                       - secretRef:
-                          name: streamhive-secrets
+                          name: azure-storage-secrets
                       env:
+                      - name: DB_HOST
+                        value: "postgres"
+                      - name: DB_PORT
+                        value: "5432"
+                      - name: DB_USER
+                        value: "postgres"
+                      - name: DB_PASSWORD
+                        valueFrom:
+                          secretKeyRef:
+                            name: streamhive-secrets
+                            key: DB_PASSWORD
+                      - name: DB_NAME
+                        value: "video_catalog"
+                      - name: DB_SSLMODE
+                        value: "disable"
                       - name: PORT
                         value: "8090"
+                      - name: AZURE_BLOB_CONTAINER
+                        valueFrom:
+                          secretKeyRef:
+                            name: azure-storage-secrets
+                            key: AZURE_STORAGE_RAW_CONTAINER
+                      - name: REDIS_HOST
+                        value: "redis"
+                      - name: REDIS_PORT
+                        value: "6379"
+                      - name: REDIS_PASSWORD
+                        value: ""
+                      - name: CACHE_TTL
+                        value: "3600"
                       resources:
                         requests:
                           memory: "256Mi"
@@ -627,14 +676,14 @@ stages:
                       ports:
                       - containerPort: 5173
                       env:
-                      - name: PORT
-                        value: "5173"
-                      - name: VITE_API_BASE_URL
-                        value: "http://streamhive-upload-service:3001"
-                      - name: VITE_VIDEO_CATALOG_URL
-                        value: "http://streamhive-video-catalog-service:8080"
-                      - name: VITE_PLAYBACK_URL
+                      - name: VITE_API_UPLOAD
+                        value: "http://streamhive-upload-service:3001/api/v1"
+                      - name: VITE_API_CATALOG
+                        value: "http://streamhive-video-catalog-service:8080/api/v1"
+                      - name: VITE_API_PLAYBACK
                         value: "http://streamhive-playback-service:8090"
+                      - name: VITE_JWT
+                        value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ1c2VyMTIzIiwidXNlcm5hbWUiOiJkZW1vIiwicGVybWlzc2lvbnMiOlsidXBsb2FkIl0sImlhdCI6MTc1NDgwNjQ1OCwiZXhwIjoxNzU0ODEwMDU4fQ.MEvZRD53drVueTOjUSwLZGgCFDyzFTq0vs87Sg-xC4M"
                       resources:
                         requests:
                           memory: "64Mi"
