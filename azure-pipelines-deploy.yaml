@@ -58,7 +58,7 @@ stages:
     pool:
       name: 'Default'
     variables:
-      KUBECONFIG: ~/myagent/azdo-kubeconfig
+      KUBECONFIG: /home/azureuser/myagent/azdo-kubeconfig
     steps:
           - script: |
               echo "=== Debug Information ==="
