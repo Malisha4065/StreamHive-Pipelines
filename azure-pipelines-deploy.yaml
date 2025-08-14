@@ -18,8 +18,8 @@ variables:
   imageRepository: 'malisha'
   buildConfiguration: 'Release'
   k8sNamespace: 'streamhive'
-  keyvaultName: "${KEYVAULT_NAME}"
-  tenantId: "${TENANT_ID}"
+  keyvaultName: ${KEYVAULT_NAME}
+  tenantId: ${TENANT_ID}
 
 resources:
   repositories:
@@ -57,6 +57,8 @@ stages:
     displayName: 'Deploy StreamHive to K8s'
     pool:
       name: 'Default'
+    variables:
+      KUBECONFIG: ~/myagent/azdo-kubeconfig
     steps:
           - script: |
               echo "Creating namespace if it doesn't exist..."
