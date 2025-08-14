@@ -18,8 +18,8 @@ variables:
   imageRepository: 'malisha'
   buildConfiguration: 'Release'
   k8sNamespace: 'streamhive'
-  keyvaultName: ${KEYVAULT_NAME}
-  tenantId: ${TENANT_ID}
+  keyvaultName: '${KEYVAULT_NAME}'
+  tenantId: '${TENANT_ID}'
 
 resources:
   repositories:
@@ -102,20 +102,6 @@ stages:
                         objectName: "azure-storage-processed-container"
                         objectType: secret
                         objectVersion: ""
-                secretObjects:
-                - secretName: azure-storage-secrets
-                  type: Opaque
-                  data:
-                  - objectName: "azure-storage-account"
-                    key: "AZURE_STORAGE_ACCOUNT"
-                  - objectName: "azure-storage-key"
-                    key: "AZURE_STORAGE_KEY"
-                  - objectName: "azure-storage-connection-string"
-                    key: "AZURE_STORAGE_CONNECTION_STRING"
-                  - objectName: "azure-storage-raw-container"
-                    key: "AZURE_STORAGE_RAW_CONTAINER"
-                  - objectName: "azure-storage-processed-container"
-                    key: "AZURE_STORAGE_PROCESSED_CONTAINER"
 
               ---
               # Secret for sensitive data
@@ -384,9 +370,6 @@ stages:
                       - name: secrets-store
                         mountPath: "/mnt/secrets-store"
                         readOnly: true
-                      envFrom:
-                      - secretRef:
-                          name: azure-storage-secrets
                       env:
                       - name: PORT
                         value: "3001"
@@ -403,11 +386,16 @@ stages:
                         value: "streamhive"
                       - name: AMQP_UPLOAD_ROUTING_KEY
                         value: "video.uploaded"
-                      - name: AZURE_STORAGE_PROCESSED_CONTAINER
-                        valueFrom:
-                          secretKeyRef:
-                            name: azure-storage-secrets
-                            key: AZURE_STORAGE_RAW_CONTAINER
+                      - name: AZURE_STORAGE_CONNECTION_STRING_FILE
+                        value: "/mnt/secrets-store/azure-storage-connection-string"
+                      - name: AZURE_STORAGE_ACCOUNT_FILE
+                        value: "/mnt/secrets-store/azure-storage-account"
+                      - name: AZURE_STORAGE_KEY_FILE
+                        value: "/mnt/secrets-store/azure-storage-key"
+                      - name: AZURE_STORAGE_RAW_CONTAINER_FILE
+                        value: "/mnt/secrets-store/azure-storage-raw-container"
+                      - name: AZURE_STORAGE_PROCESSED_CONTAINER_FILE
+                        value: "/mnt/secrets-store/azure-storage-raw-container"
                       - name: MAX_FILE_SIZE
                         value: "1073741824"
                       - name: ALLOWED_FORMATS
@@ -465,9 +453,6 @@ stages:
                       - name: secrets-store
                         mountPath: "/mnt/secrets-store"
                         readOnly: true
-                      envFrom:
-                      - secretRef:
-                          name: azure-storage-secrets
                       env:
                       - name: AMQP_URL
                         value: "amqp://guest:guest@rabbitmq:5672/"
@@ -481,13 +466,16 @@ stages:
                         value: "transcoder.video.uploaded"
                       - name: CONCURRENCY
                         value: "1"
-                      - name: AZURE_BLOB_CONTAINER
-                        valueFrom:
-                          secretKeyRef:
-                            name: azure-storage-secrets
-                            key: AZURE_STORAGE_RAW_CONTAINER
-                      - name: AZURE_PUBLIC_BASE
-                        value: "https://$(AZURE_STORAGE_ACCOUNT).blob.core.windows.net/$(AZURE_STORAGE_RAW_CONTAINER)"
+                      - name: AZURE_STORAGE_ACCOUNT_FILE
+                        value: "/mnt/secrets-store/azure-storage-account"
+                      - name: AZURE_STORAGE_KEY_FILE
+                        value: "/mnt/secrets-store/azure-storage-key"
+                      - name: AZURE_BLOB_CONTAINER_FILE
+                        value: "/mnt/secrets-store/azure-storage-raw-container"
+                      - name: AZURE_PUBLIC_BASE_ACCOUNT_FILE
+                        value: "/mnt/secrets-store/azure-storage-account"
+                      - name: AZURE_PUBLIC_BASE_CONTAINER_FILE
+                        value: "/mnt/secrets-store/azure-storage-raw-container"
                       - name: LOG_LEVEL
                         value: "info"
                       resources:
@@ -541,9 +529,6 @@ stages:
                       - name: secrets-store
                         mountPath: "/mnt/secrets-store"
                         readOnly: true
-                      envFrom:
-                      - secretRef:
-                          name: azure-storage-secrets
                       env:
                       - name: DB_HOST
                         value: "postgres"
@@ -572,11 +557,14 @@ stages:
                         value: "video-catalog.video.uploaded"
                       - name: AMQP_UPLOAD_ROUTING_KEY
                         value: "video.uploaded"
-                      - name: AZURE_BLOB_CONTAINER
-                        valueFrom:
-                          secretKeyRef:
-                            name: azure-storage-secrets
-                            key: AZURE_STORAGE_RAW_CONTAINER
+                      - name: AZURE_STORAGE_CONNECTION_STRING_FILE
+                        value: "/mnt/secrets-store/azure-storage-connection-string"
+                      - name: AZURE_STORAGE_ACCOUNT_FILE
+                        value: "/mnt/secrets-store/azure-storage-account"
+                      - name: AZURE_STORAGE_KEY_FILE
+                        value: "/mnt/secrets-store/azure-storage-key"
+                      - name: AZURE_BLOB_CONTAINER_FILE
+                        value: "/mnt/secrets-store/azure-storage-raw-container"
                       - name: PORT
                         value: "8080"
                       resources:
@@ -634,9 +622,6 @@ stages:
                       - name: secrets-store
                         mountPath: "/mnt/secrets-store"
                         readOnly: true
-                      envFrom:
-                      - secretRef:
-                          name: azure-storage-secrets
                       env:
                       - name: DB_HOST
                         value: "postgres"
@@ -655,11 +640,14 @@ stages:
                         value: "disable"
                       - name: PORT
                         value: "8090"
-                      - name: AZURE_BLOB_CONTAINER
-                        valueFrom:
-                          secretKeyRef:
-                            name: azure-storage-secrets
-                            key: AZURE_STORAGE_RAW_CONTAINER
+                      - name: AZURE_STORAGE_CONNECTION_STRING_FILE
+                        value: "/mnt/secrets-store/azure-storage-connection-string"
+                      - name: AZURE_STORAGE_ACCOUNT_FILE
+                        value: "/mnt/secrets-store/azure-storage-account"
+                      - name: AZURE_STORAGE_KEY_FILE
+                        value: "/mnt/secrets-store/azure-storage-key"
+                      - name: AZURE_BLOB_CONTAINER_FILE
+                        value: "/mnt/secrets-store/azure-storage-raw-container"
                       - name: REDIS_HOST
                         value: "redis"
                       - name: REDIS_PORT
