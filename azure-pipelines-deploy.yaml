@@ -1,0 +1,646 @@
+trigger:
+  branches:
+    include:
+    - main
+    - develop
+  paths:
+    include:
+    - Frontend/*
+    - UploadService/*
+    - TranscoderService/*
+    - VideoCatalogService/*
+    - PlaybackService/*
+
+variables:
+  # Docker Hub Configuration
+  dockerRegistryServiceConnection: 'dockerhubconn'
+  containerRegistry: 'docker.io'
+  imageRepository: 'malisha'
+  buildConfiguration: 'Release'
+  k8sNamespace: 'streamhive'
+  keyvaultName: "#{KEYVAULT_NAME}#"
+  tenantId: "#{TENANT_ID}#"
+
+resources:
+  repositories:
+  - repository: frontend
+    type: github
+    name: Malisha4065/StreamHive-Frontend
+    ref: main
+    endpoint: Malisha4065
+  - repository: upload
+    type: github
+    name: Malisha4065/StreamHive-UploadService
+    ref: main
+    endpoint: Malisha4065
+  - repository: transcoder
+    type: github
+    name: Malisha4065/StreamHive-TranscoderService
+    ref: main
+    endpoint: Malisha4065
+  - repository: videocatalog
+    type: github
+    name: Malisha4065/StreamHive-VideoCatalogService
+    ref: main
+    endpoint: Malisha4065
+  - repository: playback
+    type: github
+    name: Malisha4065/StreamHive-PlaybackService
+    ref: main
+    endpoint: Malisha4065
+
+stages:
+- stage: DeployToKubernetes
+  displayName: 'Deploy to Kubernetes'
+  jobs:
+  - job: DeployStreamHive
+    displayName: 'Deploy StreamHive to K8s'
+    pool:
+      name: 'Default'
+    steps:
+          - script: |
+              echo "Creating namespace if it doesn't exist..."
+              kubectl create namespace $(k8sNamespace) --dry-run=client -o yaml | kubectl apply -f -
+            displayName: 'Create Namespace'
+            
+          - script: |
+              cat <<EOF | kubectl apply -f -
+              apiVersion: secrets-store.csi.x-k8s.io/v1
+              kind: SecretProviderClass
+              metadata:
+                name: streamhive-secrets
+                namespace: streamhive
+              spec:
+                provider: azure
+                parameters:
+                  usePodIdentity: "false"
+                  useVMManagedIdentity: "true"
+                  userAssignedIdentityID: ""
+                  keyvaultName: $(keyvaultName)
+                  tenantId: $(tenantId)
+                  objects: |
+                    array:
+                      - |
+                        objectName: "azure-storage-account"
+                        objectType: secret
+                        objectVersion: ""
+                      - |
+                        objectName: "azure-storage-connection-string"  
+                        objectType: secret
+                        objectVersion: ""
+                      - |
+                        objectName: "azure-storage-key"
+                        objectType: secret
+                        objectVersion: ""
+                      - |
+                        objectName: "azure-storage-raw-container"
+                        objectType: secret
+                        objectVersion: ""
+                      - |
+                        objectName: "azure-storage-processed-container"
+                        objectType: secret
+                        objectVersion: ""
+                secretObjects:
+                - secretName: azure-storage-secrets
+                  type: Opaque
+                  data:
+                  - objectName: "azure-storage-account"
+                    key: "AZURE_STORAGE_ACCOUNT"
+                  - objectName: "azure-storage-key"
+                    key: "AZURE_STORAGE_KEY"
+                  - objectName: "azure-storage-connection-string"
+                    key: "AZURE_STORAGE_CONNECTION_STRING"
+                  - objectName: "azure-storage-raw-container"
+                    key: "AZURE_STORAGE_RAW_CONTAINER"
+                  - objectName: "azure-storage-processed-container"
+                    key: "AZURE_STORAGE_PROCESSED_CONTAINER"
+              EOF
+            displayName: 'Apply secrets'
+
+          - script: |
+              cat <<EOF | kubectl apply -f -
+              # PostgreSQL Database for StreamHive
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                name: postgres
+                namespace: streamhive
+                labels:
+                  app: postgres
+              spec:
+                replicas: 1
+                selector:
+                  matchLabels:
+                    app: postgres
+                template:
+                  metadata:
+                    labels:
+                      app: postgres
+                  spec:
+                    containers:
+                    - name: postgres
+                      image: postgres:15-alpine
+                      ports:
+                      - containerPort: 5432
+                        name: postgres
+                      env:
+                      - name: POSTGRES_DB
+                        value: "video_catalog"
+                      - name: POSTGRES_USER
+                        value: "postgres"
+                      - name: POSTGRES_PASSWORD
+                        value: "streamhive_dev_password"
+                      - name: PGDATA
+                        value: "/var/lib/postgresql/data/pgdata"
+                      volumeMounts:
+                      - name: postgres-storage
+                        mountPath: /var/lib/postgresql/data
+                      livenessProbe:
+                        exec:
+                          command:
+                          - pg_isready
+                          - -U
+                          - postgres
+                        initialDelaySeconds: 30
+                        periodSeconds: 10
+                      readinessProbe:
+                        exec:
+                          command:
+                          - pg_isready
+                          - -U
+                          - postgres
+                        initialDelaySeconds: 5
+                        periodSeconds: 5
+                    volumes:
+                    - name: postgres-storage
+                      emptyDir: {}
+
+              ---
+              apiVersion: v1
+              kind: Service
+              metadata:
+                name: postgres
+                namespace: streamhive
+                labels:
+                  app: postgres
+              spec:
+                selector:
+                  app: postgres
+                ports:
+                - port: 5432
+                  targetPort: 5432
+                  name: postgres
+                type: ClusterIP
+
+              ---
+              # Redis for caching and session management
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                name: redis
+                namespace: streamhive
+                labels:
+                  app: redis
+              spec:
+                replicas: 1
+                selector:
+                  matchLabels:
+                    app: redis
+                template:
+                  metadata:
+                    labels:
+                      app: redis
+                  spec:
+                    containers:
+                    - name: redis
+                      image: redis:7-alpine
+                      ports:
+                      - containerPort: 6379
+                        name: redis
+                      command:
+                      - redis-server
+                      - --appendonly
+                      - "yes"
+                      volumeMounts:
+                      - name: redis-storage
+                        mountPath: /data
+                      livenessProbe:
+                        exec:
+                          command:
+                          - redis-cli
+                          - ping
+                        initialDelaySeconds: 30
+                        periodSeconds: 10
+                      readinessProbe:
+                        exec:
+                          command:
+                          - redis-cli
+                          - ping
+                        initialDelaySeconds: 5
+                        periodSeconds: 5
+                    volumes:
+                    - name: redis-storage
+                      emptyDir: {}
+
+              ---
+              apiVersion: v1
+              kind: Service
+              metadata:
+                name: redis
+                namespace: streamhive
+                labels:
+                  app: redis
+              spec:
+                selector:
+                  app: redis
+                ports:
+                - port: 6379
+                  targetPort: 6379
+                  name: redis
+                type: ClusterIP
+
+              ---
+              # ConfigMap for shared configuration
+              apiVersion: v1
+              kind: ConfigMap
+              metadata:
+                name: streamhive-config
+                namespace: streamhive
+              data:
+                # Database configuration
+                DB_HOST: "postgres"
+                DB_PORT: "5432"
+                DB_NAME: "video_catalog"
+                DB_USER: "postgres"
+                
+                # Redis configuration
+                REDIS_HOST: "redis"
+                REDIS_PORT: "6379"
+                
+                # Application configuration
+                NODE_ENV: "production"
+                LOG_LEVEL: "info"
+              ---
+              # Secret for sensitive data
+              apiVersion: v1
+              kind: Secret
+              metadata:
+                name: streamhive-secrets
+                namespace: streamhive
+              type: Opaque
+              stringData:
+                DB_PASSWORD: "streamhive_dev_password"
+                JWT_SECRET: "your-super-secret-jwt-key-for-development-only"
+                REDIS_PASSWORD: ""
+              EOF
+            displayName: 'DB and Redis Application'
+
+          - script: |
+              cat <<EOF | kubectl apply -f -
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                name: rabbitmq
+                namespace: streamhive
+                labels:
+                  app: rabbitmq
+              spec:
+                replicas: 1
+                selector:
+                  matchLabels:
+                    app: rabbitmq
+                template:
+                  metadata:
+                    labels:
+                      app: rabbitmq
+                  spec:
+                    containers:
+                    - name: rabbitmq
+                      image: rabbitmq:3.12-management-alpine
+                      ports:
+                      - containerPort: 5672
+                        name: amqp
+                      - containerPort: 15672
+                        name: management
+                      env:
+                      - name: RABBITMQ_DEFAULT_USER
+                        value: "guest"
+                      - name: RABBITMQ_DEFAULT_PASS
+                        value: "guest"
+                      volumeMounts:
+                      - name: rabbitmq-storage
+                        mountPath: /var/lib/rabbitmq
+                      livenessProbe:
+                        exec:
+                          command:
+                          - rabbitmq-diagnostics
+                          - -q
+                          - ping
+                        initialDelaySeconds: 60
+                        periodSeconds: 10
+                      readinessProbe:
+                        exec:
+                          command:
+                          - rabbitmq-diagnostics
+                          - -q
+                          - check_port_connectivity
+                        initialDelaySeconds: 20
+                        periodSeconds: 10
+                    volumes:
+                    - name: rabbitmq-storage
+                      emptyDir: {}
+
+              ---
+              apiVersion: v1
+              kind: Service
+              metadata:
+                name: rabbitmq
+                namespace: streamhive
+                labels:
+                  app: rabbitmq
+              spec:
+                selector:
+                  app: rabbitmq
+                ports:
+                - port: 5672
+                  targetPort: 5672
+                  name: amqp
+                - port: 15672
+                  targetPort: 15672
+                  name: management
+                type: ClusterIP
+              EOF
+            displayName: 'RabbitMQ application'
+
+          - script: |
+              # Create namespace if it doesn't exist
+              kubectl create namespace $(k8sNamespace) --dry-run=client -o yaml | kubectl apply -f -
+              
+              # Deploy Upload Service
+              cat <<EOF | kubectl apply -f -
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                name: streamhive-upload-service
+                namespace: $(k8sNamespace)
+              spec:
+                replicas: 2
+                selector:
+                  matchLabels:
+                    app: streamhive-upload-service
+                template:
+                  metadata:
+                    labels:
+                      app: streamhive-upload-service
+                  spec:
+                    containers:
+                    - name: upload-service
+                      image: $(imageRepository)/streamhive-upload-service:$(Build.BuildNumber)
+                      ports:
+                      - containerPort: 3001
+                      env:
+                      - name: NODE_ENV
+                        value: "production"
+                      resources:
+                        requests:
+                          memory: "256Mi"
+                          cpu: "200m"
+                        limits:
+                          memory: "512Mi"
+                          cpu: "400m"
+              ---
+              apiVersion: v1
+              kind: Service
+              metadata:
+                name: streamhive-upload-service
+                namespace: $(k8sNamespace)
+              spec:
+                selector:
+                  app: streamhive-upload-service
+                ports:
+                - port: 3001
+                  targetPort: 3001
+                type: ClusterIP
+              EOF
+              
+              # Deploy Transcoder Service
+              cat <<EOF | kubectl apply -f -
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                name: streamhive-transcoder-service
+                namespace: $(k8sNamespace)
+              spec:
+                replicas: 1
+                selector:
+                  matchLabels:
+                    app: streamhive-transcoder-service
+                template:
+                  metadata:
+                    labels:
+                      app: streamhive-transcoder-service
+                  spec:
+                    containers:
+                    - name: transcoder-service
+                      image: $(imageRepository)/streamhive-transcoder-service:$(Build.BuildNumber)
+                      resources:
+                        requests:
+                          memory: "512Mi"
+                          cpu: "500m"
+                        limits:
+                          memory: "1Gi"
+                          cpu: "1000m"
+              ---
+              apiVersion: v1
+              kind: Service
+              metadata:
+                name: streamhive-transcoder-service
+                namespace: $(k8sNamespace)
+              spec:
+                selector:
+                  app: streamhive-transcoder-service
+              EOF
+              
+              # Deploy Video Catalog Service
+              cat <<EOF | kubectl apply -f -
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                name: streamhive-video-catalog-service
+                namespace: $(k8sNamespace)
+              spec:
+                replicas: 2
+                selector:
+                  matchLabels:
+                    app: streamhive-video-catalog-service
+                template:
+                  metadata:
+                    labels:
+                      app: streamhive-video-catalog-service
+                  spec:
+                    containers:
+                    - name: video-catalog-service
+                      image: $(imageRepository)/streamhive-video-catalog-service:$(Build.BuildNumber)
+                      ports:
+                      - containerPort: 8080
+                      resources:
+                        requests:
+                          memory: "256Mi"
+                          cpu: "200m"
+                        limits:
+                          memory: "512Mi"
+                          cpu: "400m"
+              ---
+              apiVersion: v1
+              kind: Service
+              metadata:
+                name: streamhive-video-catalog-service
+                namespace: $(k8sNamespace)
+              spec:
+                selector:
+                  app: streamhive-video-catalog-service
+                ports:
+                - port: 8080
+                  targetPort: 8080
+                type: ClusterIP
+              EOF
+              
+              # Deploy Playback Service
+              cat <<EOF | kubectl apply -f -
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                name: streamhive-playback-service
+                namespace: $(k8sNamespace)
+              spec:
+                replicas: 2
+                selector:
+                  matchLabels:
+                    app: streamhive-playback-service
+                template:
+                  metadata:
+                    labels:
+                      app: streamhive-playback-service
+                  spec:
+                    containers:
+                    - name: playback-service
+                      image: $(imageRepository)/streamhive-playback-service:$(Build.BuildNumber)
+                      ports:
+                      - containerPort: 8090
+                      resources:
+                        requests:
+                          memory: "256Mi"
+                          cpu: "200m"
+                        limits:
+                          memory: "512Mi"
+                          cpu: "400m"
+              ---
+              apiVersion: v1
+              kind: Service
+              metadata:
+                name: streamhive-playback-service
+                namespace: $(k8sNamespace)
+              spec:
+                selector:
+                  app: streamhive-playback-service
+                ports:
+                - port: 8090
+                  targetPort: 8090
+                type: ClusterIP
+              EOF
+              
+              # Deploy Frontend
+              cat <<EOF | kubectl apply -f -
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                name: streamhive-frontend
+                namespace: $(k8sNamespace)
+              spec:
+                replicas: 2
+                selector:
+                  matchLabels:
+                    app: streamhive-frontend
+                template:
+                  metadata:
+                    labels:
+                      app: streamhive-frontend
+                  spec:
+                    containers:
+                    - name: frontend
+                      image: $(imageRepository)/streamhive-frontend:$(Build.BuildNumber)
+                      ports:
+                      - containerPort: 5173
+                      resources:
+                        requests:
+                          memory: "128Mi"
+                          cpu: "100m"
+                        limits:
+                          memory: "256Mi"
+                          cpu: "200m"
+              ---
+              apiVersion: v1
+              kind: Service
+              metadata:
+                name: streamhive-frontend-service
+                namespace: $(k8sNamespace)
+              spec:
+                selector:
+                  app: streamhive-frontend
+                ports:
+                - port: 5173
+                  targetPort: 5173
+                type: NodePort
+              EOF
+            displayName: 'Deplyoment Step'
+
+          - script: |
+              # Set kubeconfig for all kubectl commands
+              export KUBECONFIG=~/azdo-kubeconfig
+              
+              echo "Waiting for deployments to be ready..."
+              kubectl wait --for=condition=available --timeout=300s deployment/streamhive-frontend -n $(k8sNamespace)
+              kubectl wait --for=condition=available --timeout=300s deployment/streamhive-upload-service -n $(k8sNamespace)
+              kubectl wait --for=condition=available --timeout=300s deployment/streamhive-transcoder-service -n $(k8sNamespace)
+              kubectl wait --for=condition=available --timeout=300s deployment/streamhive-video-catalog-service -n $(k8sNamespace)
+              kubectl wait --for=condition=available --timeout=300s deployment/streamhive-playback-service -n $(k8sNamespace)
+              
+              echo "Deployment Status:"
+              kubectl get pods -n $(k8sNamespace)
+              kubectl get services -n $(k8sNamespace)
+            displayName: 'Verify Deployment'
+
+- stage: Summary
+  displayName: 'Deployment Summary'
+  dependsOn: 
+  - BuildAndPushImages
+  - DeployToKubernetes
+  condition: always()
+  jobs:
+  - job: DeploymentSummary
+    displayName: 'Display Deployment Summary'
+    pool:
+      name: 'Default'
+    steps:
+    - script: |
+        echo "===========================================" 
+        echo "StreamHive Deployment Complete!"
+        echo "==========================================="
+        echo ""
+        echo "Built and deployed the following services:"
+        echo "• Frontend: $(imageRepository)/streamhive-frontend:$(Build.BuildNumber)"
+        echo "• Upload Service: $(imageRepository)/streamhive-upload-service:$(Build.BuildNumber)"
+        echo "• Transcoder Service: $(imageRepository)/streamhive-transcoder-service:$(Build.BuildNumber)"
+        echo "• Video Catalog Service: $(imageRepository)/streamhive-video-catalog-service:$(Build.BuildNumber)"
+        echo "• Playback Service: $(imageRepository)/streamhive-playback-service:$(Build.BuildNumber)"
+        echo ""
+        echo "Deployed to namespace: $(k8sNamespace)"
+        echo ""
+        echo "To check your deployment:"
+        echo "kubectl get pods -n $(k8sNamespace)"
+        echo "kubectl get services -n $(k8sNamespace)"
+        echo ""
+        echo "To access the frontend:"
+        echo "kubectl get service streamhive-frontend-service -n $(k8sNamespace)"
+        echo ""
+      displayName: 'Deployment Summary'
