@@ -61,6 +61,24 @@ stages:
       KUBECONFIG: ~/myagent/azdo-kubeconfig
     steps:
           - script: |
+              echo "=== Debug Information ==="
+              echo "Current user: $(whoami)"
+              echo "Home directory: $HOME"
+              echo "Current working directory: $(pwd)"
+              echo "KUBECONFIG variable: $KUBECONFIG"
+              echo ""
+              echo "=== Checking kubeconfig file ==="
+              ls -la ~/myagent/azdo-kubeconfig || echo "File doesn't exist"
+              echo ""
+              echo "=== Kubeconfig content (if exists) ==="
+              cat ~/myagent/azdo-kubeconfig || echo "Cannot read file"
+              echo ""
+              echo "=== Testing kubectl ==="
+              kubectl config view --kubeconfig=~/myagent/azdo-kubeconfig || echo "Cannot view config"
+              kubectl cluster-info --kubeconfig=~/myagent/azdo-kubeconfig || echo "Cannot get cluster info"
+            displayName: 'Debug Kubernetes Config'
+          
+          - script: |
               echo "Creating namespace if it doesn't exist..."
               kubectl create namespace $(k8sNamespace) --dry-run=client -o yaml | kubectl apply -f -
             displayName: 'Create Namespace'
