@@ -360,6 +360,8 @@ stages:
                     labels:
                       app: streamhive-upload-service
                   spec:
+                    securityContext:
+                      fsGroup: 1001
                     containers:
                     - name: upload-service
                       image: $(imageRepository)/streamhive-upload-service:latest
