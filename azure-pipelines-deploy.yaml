@@ -76,7 +76,7 @@ stages:
                 provider: azure
                 parameters:
                   usePodIdentity: "false"
-                  useVMManagedIdentity: "false"  # Changed to false for manual cluster
+                  useVMManagedIdentity: "true"
                   userAssignedIdentityID: ""
                   keyvaultName: $(keyvaultName)
                   tenantId: $(tenantId)
