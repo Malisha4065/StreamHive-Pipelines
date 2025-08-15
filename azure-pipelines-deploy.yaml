@@ -102,6 +102,20 @@ stages:
                         objectName: "azure-storage-processed-container"
                         objectType: secret
                         objectVersion: ""
+                secretObjects:
+                - secretName: mounted-azure-secrets
+                  type: Opaque
+                  data:
+                  - objectName: azure-storage-connection-string
+                    key: AZURE_STORAGE_CONNECTION_STRING
+                  - objectName: azure-storage-account
+                    key: AZURE_STORAGE_ACCOUNT_NAME
+                  - objectName: azure-storage-key
+                    key: AZURE_STORAGE_ACCOUNT_KEY
+                  - objectName: azure-storage-raw-container
+                    key: AZURE_STORAGE_RAW_CONTAINER
+                  - objectName: azure-storage-processed-container
+                    key: AZURE_STORAGE_PROCESSED_CONTAINER
 
               ---
               # Secret for sensitive data
@@ -366,10 +380,9 @@ stages:
                       image: $(imageRepository)/streamhive-upload-service:latest
                       ports:
                       - containerPort: 3001
-                      volumeMounts:
-                      - name: secrets-store
-                        mountPath: "/mnt/secrets-store"
-                        readOnly: true
+                      envFrom:
+                      - secretRef:
+                          name: mounted-azure-secrets
                       env:
                       - name: PORT
                         value: "3001"
@@ -689,3 +702,16 @@ stages:
                           cpu: "100m"
               ---
               apiVersion: v1
+              kind: Service
+              metadata:
+                name: streamhive-frontend
+                namespace: $(k8sNamespace)
+              spec:
+                selector:
+                  app: streamhive-frontend
+                ports:
+                - port: 80
+                  targetPort: 5173
+                type: ClusterIP
+              EOF
+            displayName: 'Deploy All Services'
