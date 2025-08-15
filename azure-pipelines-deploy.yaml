@@ -385,7 +385,7 @@ stages:
                           
                           # Load secrets into environment variables
                           if [ -f "/mnt/secrets-store/azure-storage-connection-string" ]; then
-                            export AZURE_STORAGE_CONNECTION_STRING="\$(cat /mnt/secrets-store/azure-storage-connection-string)"
+                            export AZURE_STORAGE_CONNECTION_STRING="$(cat /mnt/secrets-store/azure-storage-connection-string)"
                             echo "✓ AZURE_STORAGE_CONNECTION_STRING loaded"
                           else
                             echo "ERROR: azure-storage-connection-string not found"
@@ -393,22 +393,22 @@ stages:
                           fi
                           
                           if [ -f "/mnt/secrets-store/azure-storage-account" ]; then
-                            export AZURE_STORAGE_ACCOUNT_NAME="\$(cat /mnt/secrets-store/azure-storage-account)"
+                            export AZURE_STORAGE_ACCOUNT_NAME="$(cat /mnt/secrets-store/azure-storage-account)"
                             echo "✓ AZURE_STORAGE_ACCOUNT_NAME loaded"
                           fi
                           
                           if [ -f "/mnt/secrets-store/azure-storage-key" ]; then
-                            export AZURE_STORAGE_ACCOUNT_KEY="\$(cat /mnt/secrets-store/azure-storage-key)"
+                            export AZURE_STORAGE_ACCOUNT_KEY="$(cat /mnt/secrets-store/azure-storage-key)"
                             echo "✓ AZURE_STORAGE_ACCOUNT_KEY loaded"
                           fi
                           
                           if [ -f "/mnt/secrets-store/azure-storage-raw-container" ]; then
-                            export AZURE_STORAGE_RAW_CONTAINER="\$(cat /mnt/secrets-store/azure-storage-raw-container)"
+                            export AZURE_STORAGE_RAW_CONTAINER="$(cat /mnt/secrets-store/azure-storage-raw-container)"
                             echo "✓ AZURE_STORAGE_RAW_CONTAINER loaded"
                           fi
                           
                           if [ -f "/mnt/secrets-store/azure-storage-processed-container" ]; then
-                            export AZURE_STORAGE_PROCESSED_CONTAINER="\$(cat /mnt/secrets-store/azure-storage-processed-container)"
+                            export AZURE_STORAGE_PROCESSED_CONTAINER="$(cat /mnt/secrets-store/azure-storage-processed-container)"
                             echo "✓ AZURE_STORAGE_PROCESSED_CONTAINER loaded"
                           fi
                           
@@ -506,27 +506,27 @@ stages:
                           
                           # Load secrets into environment variables
                           if [ -f "/mnt/secrets-store/azure-storage-account" ]; then
-                            export AZURE_STORAGE_ACCOUNT="\$(cat /mnt/secrets-store/azure-storage-account)"
+                            export AZURE_STORAGE_ACCOUNT="$(cat /mnt/secrets-store/azure-storage-account)"
                             echo "✓ AZURE_STORAGE_ACCOUNT loaded"
                           fi
                           
                           if [ -f "/mnt/secrets-store/azure-storage-key" ]; then
-                            export AZURE_STORAGE_KEY="\$(cat /mnt/secrets-store/azure-storage-key)"
+                            export AZURE_STORAGE_KEY="$(cat /mnt/secrets-store/azure-storage-key)"
                             echo "✓ AZURE_STORAGE_KEY loaded"
                           fi
                           
                           if [ -f "/mnt/secrets-store/azure-storage-raw-container" ]; then
-                            export AZURE_BLOB_CONTAINER="\$(cat /mnt/secrets-store/azure-storage-raw-container)"
+                            export AZURE_BLOB_CONTAINER="$(cat /mnt/secrets-store/azure-storage-raw-container)"
                             echo "✓ AZURE_BLOB_CONTAINER loaded"
                           fi
                           
                           if [ -f "/mnt/secrets-store/azure-storage-connection-string" ]; then
-                            export AZURE_PUBLIC_BASE="\$(cat /mnt/secrets-store/azure-storage-connection-string)"
+                            export AZURE_PUBLIC_BASE="$(cat /mnt/secrets-store/azure-storage-connection-string)"
                             echo "✓ AZURE_PUBLIC_BASE loaded"
                           fi
                           
                           if [ -f "/mnt/secrets-store/azure-storage-processed-container" ]; then
-                            export AZURE_STORAGE_PROCESSED_CONTAINER="\$(cat /mnt/secrets-store/azure-storage-processed-container)"
+                            export AZURE_STORAGE_PROCESSED_CONTAINER="$(cat /mnt/secrets-store/azure-storage-processed-container)"
                             echo "✓ AZURE_STORAGE_PROCESSED_CONTAINER loaded"
                           fi
                           
@@ -617,22 +617,22 @@ stages:
                           
                           # Load secrets into environment variables
                           if [ -f "/mnt/secrets-store/azure-storage-connection-string" ]; then
-                            export AZURE_STORAGE_CONNECTION_STRING="\$(cat /mnt/secrets-store/azure-storage-connection-string)"
+                            export AZURE_STORAGE_CONNECTION_STRING="$(cat /mnt/secrets-store/azure-storage-connection-string)"
                             echo "✓ AZURE_STORAGE_CONNECTION_STRING loaded"
                           fi
                           
                           if [ -f "/mnt/secrets-store/azure-storage-account" ]; then
-                            export AZURE_STORAGE_ACCOUNT="\$(cat /mnt/secrets-store/azure-storage-account)"
+                            export AZURE_STORAGE_ACCOUNT="$(cat /mnt/secrets-store/azure-storage-account)"
                             echo "✓ AZURE_STORAGE_ACCOUNT loaded"
                           fi
                           
                           if [ -f "/mnt/secrets-store/azure-storage-key" ]; then
-                            export AZURE_STORAGE_KEY="\$(cat /mnt/secrets-store/azure-storage-key)"
+                            export AZURE_STORAGE_KEY="$(cat /mnt/secrets-store/azure-storage-key)"
                             echo "✓ AZURE_STORAGE_KEY loaded"
                           fi
                           
                           if [ -f "/mnt/secrets-store/azure-storage-raw-container" ]; then
-                            export AZURE_BLOB_CONTAINER="\$(cat /mnt/secrets-store/azure-storage-raw-container)"
+                            export AZURE_BLOB_CONTAINER="$(cat /mnt/secrets-store/azure-storage-raw-container)"
                             echo "✓ AZURE_BLOB_CONTAINER loaded"
                           fi
                           
@@ -742,22 +742,22 @@ stages:
                           
                           # Load secrets into environment variables
                           if [ -f "/mnt/secrets-store/azure-storage-connection-string" ]; then
-                            export AZURE_STORAGE_CONNECTION_STRING="\$(cat /mnt/secrets-store/azure-storage-connection-string)"
+                            export AZURE_STORAGE_CONNECTION_STRING="$(cat /mnt/secrets-store/azure-storage-connection-string)"
                             echo "✓ AZURE_STORAGE_CONNECTION_STRING loaded"
                           fi
                           
                           if [ -f "/mnt/secrets-store/azure-storage-account" ]; then
-                            export AZURE_STORAGE_ACCOUNT="\$(cat /mnt/secrets-store/azure-storage-account)"
+                            export AZURE_STORAGE_ACCOUNT="$(cat /mnt/secrets-store/azure-storage-account)"
                             echo "✓ AZURE_STORAGE_ACCOUNT loaded"
                           fi
                           
                           if [ -f "/mnt/secrets-store/azure-storage-key" ]; then
-                            export AZURE_STORAGE_KEY="\$(cat /mnt/secrets-store/azure-storage-key)"
+                            export AZURE_STORAGE_KEY="$(cat /mnt/secrets-store/azure-storage-key)"
                             echo "✓ AZURE_STORAGE_KEY loaded"
                           fi
                           
                           if [ -f "/mnt/secrets-store/azure-storage-raw-container" ]; then
-                            export AZURE_BLOB_CONTAINER="\$(cat /mnt/secrets-store/azure-storage-raw-container)"
+                            export AZURE_BLOB_CONTAINER="$(cat /mnt/secrets-store/azure-storage-raw-container)"
                             echo "✓ AZURE_BLOB_CONTAINER loaded"
                           fi
                           
