@@ -102,21 +102,6 @@ stages:
                         objectName: "azure-storage-processed-container"
                         objectType: secret
                         objectVersion: ""
-                secretObjects:
-                - secretName: mounted-azure-secrets
-                  type: Opaque
-                  data:
-                  - objectName: azure-storage-connection-string
-                    key: AZURE_STORAGE_CONNECTION_STRING
-                  - objectName: azure-storage-account
-                    key: AZURE_STORAGE_ACCOUNT_NAME
-                  - objectName: azure-storage-key
-                    key: AZURE_STORAGE_ACCOUNT_KEY
-                  - objectName: azure-storage-raw-container
-                    key: AZURE_STORAGE_RAW_CONTAINER
-                  - objectName: azure-storage-processed-container
-                    key: AZURE_STORAGE_PROCESSED_CONTAINER
-
               ---
               # Secret for sensitive data
               apiVersion: v1
@@ -380,9 +365,31 @@ stages:
                       image: $(imageRepository)/streamhive-upload-service:latest
                       ports:
                       - containerPort: 3001
-                      envFrom:
-                      - secretRef:
-                          name: mounted-azure-secrets
+                      command: ["/bin/sh"]
+                      args:
+                        - -c
+                        - |
+                          set -e
+                          echo "Waiting for secrets to be mounted by CSI driver..."
+                          
+                          # POSIX-compliant 'sh' loop
+                          i=1
+                          while [ $i -le 30 ]; do
+                            if [ -f "/mnt/secrets-store/azure-storage-connection-string" ]; then
+                              echo "✅ Secrets found, proceeding to start application."
+                              exec npm start
+                            fi
+                            echo "Waiting for secrets... ($i/30)"
+                            sleep 5
+                            i=$((i + 1))
+                          done
+                          
+                          echo "❌ ERROR: Timed out waiting for secret file /mnt/secrets-store/azure-storage-connection-string."
+                          exit 1
+                      volumeMounts:
+                      - name: secrets-store
+                        mountPath: "/mnt/secrets-store"
+                        readOnly: true
                       env:
                       - name: PORT
                         value: "3001"
