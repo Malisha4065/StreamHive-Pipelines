@@ -720,6 +720,6 @@ stages:
                 ports:
                 - port: 80
                   targetPort: 5173
-                type: ClusterIP
+                type: NodePort
               EOF
             displayName: 'Deploy All Services'
