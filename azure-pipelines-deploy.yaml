@@ -700,12 +700,21 @@ stages:
                 gateways:
                 - streamhive-gateway
                 http:
+                # Rule for Playback Service
+                - match:
+                  - uri:
+                      prefix: /playback/playback
+                  rewrite:
+                    uri: "/playback"
+                  route:
+                  - destination:
+                      host: streamhive-playback-service
+                      port:
+                        number: 8090
                 # Rule for Upload Service
                 - match:
                   - uri:
-                      prefix: /api/upload
-                  rewrite:
-                    uri: "/"
+                      prefix: /api/v1/upload
                   route:
                   - destination:
                       host: streamhive-upload-service
@@ -714,25 +723,12 @@ stages:
                 # Rule for Video Catalog Service
                 - match:
                   - uri:
-                      prefix: /api/catalog
-                  rewrite:
-                    uri: "/"
+                      prefix: /api/v1/videos
                   route:
                   - destination:
                       host: streamhive-video-catalog-service
                       port:
                         number: 8080
-                # Rule for Playback Service
-                - match:
-                  - uri:
-                      prefix: /api/playback
-                  rewrite:
-                    uri: "/"
-                  route:
-                  - destination:
-                      host: streamhive-playback-service
-                      port:
-                        number: 8090
                 # Rule for the Frontend (catches everything else)
                 - route:
                   - destination:
@@ -765,9 +761,9 @@ stages:
                       - containerPort: 80
                       env:
                       - name: VITE_API_UPLOAD
-                        value: "/api/upload/api/v1"
+                        value: "/api/upload"
                       - name: VITE_API_CATALOG
-                        value: "/api/catalog/api/v1"
+                        value: "/api/catalog"
                       - name: VITE_API_PLAYBACK
                         value: "/api/playback"
                       - name: VITE_JWT
