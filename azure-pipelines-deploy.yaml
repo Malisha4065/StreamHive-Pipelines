@@ -692,6 +692,15 @@ stages:
                       image: $(imageRepository)/streamhive-frontend:latest
                       ports:
                       - containerPort: 80
+                      env:
+                      - name: VITE_API_UPLOAD
+                        value: "http://streamhive-upload-service:3001/api/v1"
+                      - name: VITE_API_CATALOG
+                        value: "http://streamhive-video-catalog-service:8080/api/v1"
+                      - name: VITE_API_PLAYBACK
+                        value: "http://streamhive-playback-service:8090"
+                      - name: VITE_JWT
+                        value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ1c2VyMTIzIiwidXNlcm5hbWUiOiJkZW1vIiwicGVybWlzc2lvbnMiOlsidXBsb2FkIiwidmlldyIsImNhdGFsb2ciXSwiaWF0IjoxNzU1MzUyNDM5LCJleHAiOjE3NTU0Mzg4Mzl9._-cIKwrfd6o08Je90420o8S5vErgSQSmsmlkBDnwdW8"
                       resources:
                         requests:
                           memory: "128Mi"
