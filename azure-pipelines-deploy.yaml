@@ -670,6 +670,77 @@ stages:
                 type: ClusterIP
               EOF
               
+              cat <<EOF | kubectl apply -f -
+              # 1. ISTIO GATEWAY
+              apiVersion: networking.istio.io/v1alpha3
+              kind: Gateway
+              metadata:
+                name: streamhive-gateway
+                namespace: streamhive
+              spec:
+                selector:
+                  istio: ingressgateway # use istio default ingress gateway
+                servers:
+                - port:
+                    number: 80
+                    name: http
+                    protocol: HTTP
+                  hosts:
+                  - "*"
+              ---
+              # 2. ISTIO VIRTUALSERVICE (Traffic Rules)
+              apiVersion: networking.istio.io/v1alpha3
+              kind: VirtualService
+              metadata:
+                name: streamhive-virtualservice
+                namespace: streamhive
+              spec:
+                hosts:
+                - "*"
+                gateways:
+                - streamhive-gateway
+                http:
+                # Rule for Upload Service
+                - match:
+                  - uri:
+                      prefix: /api/upload
+                  rewrite:
+                    uri: "/"
+                  route:
+                  - destination:
+                      host: streamhive-upload-service
+                      port:
+                        number: 3001
+                # Rule for Video Catalog Service
+                - match:
+                  - uri:
+                      prefix: /api/catalog
+                  rewrite:
+                    uri: "/"
+                  route:
+                  - destination:
+                      host: streamhive-video-catalog-service
+                      port:
+                        number: 8080
+                # Rule for Playback Service
+                - match:
+                  - uri:
+                      prefix: /api/playback
+                  rewrite:
+                    uri: "/"
+                  route:
+                  - destination:
+                      host: streamhive-playback-service
+                      port:
+                        number: 8090
+                # Rule for the Frontend (catches everything else)
+                - route:
+                  - destination:
+                      host: streamhive-frontend
+                      port:
+                        number: 80
+              EOF
+
               # Deploy Frontend
               cat <<EOF | kubectl apply -f -
               apiVersion: apps/v1
@@ -694,11 +765,11 @@ stages:
                       - containerPort: 80
                       env:
                       - name: VITE_API_UPLOAD
-                        value: "http://streamhive-upload-service:3001/api/v1"
+                        value: "/api/upload/api/v1"
                       - name: VITE_API_CATALOG
-                        value: "http://streamhive-video-catalog-service:8080/api/v1"
+                        value: "/api/catalog/api/v1"
                       - name: VITE_API_PLAYBACK
-                        value: "http://streamhive-playback-service:8090"
+                        value: "/api/playback"
                       - name: VITE_JWT
                         value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ1c2VyMTIzIiwidXNlcm5hbWUiOiJkZW1vIiwicGVybWlzc2lvbnMiOlsidXBsb2FkIiwidmlldyIsImNhdGFsb2ciXSwiaWF0IjoxNzU1MzUyNDM5LCJleHAiOjE3NTU0Mzg4Mzl9._-cIKwrfd6o08Je90420o8S5vErgSQSmsmlkBDnwdW8"
                       resources:
@@ -720,6 +791,6 @@ stages:
                 ports:
                 - port: 80
                   targetPort: 80
-                type: NodePort
+                type: ClusterIP
               EOF
             displayName: 'Deploy All Services'
