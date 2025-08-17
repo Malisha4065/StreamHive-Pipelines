@@ -700,12 +700,23 @@ stages:
                 gateways:
                 - streamhive-gateway
                 http:
-                # Rule for Upload Service
+                # Rule for Upload Service (exact)
+                - match:
+                  - uri:
+                      exact: /api/upload
+                  rewrite:
+                    uri: "/api/v1/upload"
+                  route:
+                  - destination:
+                      host: streamhive-upload-service
+                      port:
+                        number: 3001
+                # Rule for Upload Service (prefix with trailing slash)
                 - match:
                   - uri:
                       prefix: /api/upload/
                   rewrite:
-                    uri: "/api/v1/upload"
+                    uri: "/api/v1/upload/"
                   route:
                   - destination:
                       host: streamhive-upload-service
