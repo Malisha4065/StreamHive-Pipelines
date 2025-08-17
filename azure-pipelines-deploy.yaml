@@ -703,7 +703,7 @@ stages:
                 # Rule for Upload Service
                 - match:
                   - uri:
-                      prefix: /api/upload
+                      prefix: /api/upload/api/v1
                   rewrite:
                     uri: "/api/v1/upload"
                   route:
