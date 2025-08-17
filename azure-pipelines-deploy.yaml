@@ -783,12 +783,23 @@ stages:
                       host: streamhive-video-catalog-service
                       port:
                         number: 8080
-                # Rule for Playback Service
+                # Rule for Playback Service - handle double path issue
                 - match:
                   - uri:
                       prefix: /api/playback/playback/
                   rewrite:
-                    uri: "/playback/"
+                    uri: "/"
+                  route:
+                  - destination:
+                      host: streamhive-playback-service
+                      port:
+                        number: 8090
+                # Rule for Playback Service - normal case
+                - match:
+                  - uri:
+                      prefix: /api/playback/
+                  rewrite:
+                    uri: "/"
                   route:
                   - destination:
                       host: streamhive-playback-service
