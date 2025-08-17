@@ -788,7 +788,7 @@ stages:
                   - uri:
                       prefix: /api/playback/playback/
                   rewrite:
-                    uri: "/"
+                    uri: "/playback/"
                   route:
                   - destination:
                       host: streamhive-playback-service
@@ -799,7 +799,7 @@ stages:
                   - uri:
                       prefix: /api/playback/
                   rewrite:
-                    uri: "/"
+                    uri: "/playback/"
                   route:
                   - destination:
                       host: streamhive-playback-service
