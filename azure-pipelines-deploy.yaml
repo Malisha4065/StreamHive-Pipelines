@@ -700,12 +700,73 @@ stages:
                 gateways:
                 - streamhive-gateway
                 http:
-                # Rule for Upload Service
+                # Direct route: allow calling /api/v1/upload directly
+                - match:
+                  - uri:
+                      prefix: /api/v1/upload
+                  headers:
+                    response:
+                      add:
+                        x-upload-route: direct-v1
+                  route:
+                  - destination:
+                      host: streamhive-upload-service
+                      port:
+                        number: 3001
+                # Hotfix: normalize accidental /api/upload/api/v1 -> /api/v1/upload (server-side rewrite)
+                - match:
+                  - uri:
+                      exact: /api/upload/api/v1
+                  rewrite:
+                    uri: "/api/v1/upload"
+                  headers:
+                    response:
+                      add:
+                        x-upload-route: hotfix-exact
+                  route:
+                  - destination:
+                      host: streamhive-upload-service
+                      port:
+                        number: 3001
+                - match:
+                  - uri:
+                      prefix: /api/upload/api/v1/
+                  rewrite:
+                    uri: "/api/v1/upload/"
+                  headers:
+                    response:
+                      add:
+                        x-upload-route: hotfix-prefix
+                  route:
+                  - destination:
+                      host: streamhive-upload-service
+                      port:
+                        number: 3001
+                # Rule for Upload Service (exact)
+                - match:
+                  - uri:
+                      exact: /api/upload
+                  rewrite:
+                    uri: "/api/v1/upload"
+                  headers:
+                    response:
+                      add:
+                        x-upload-route: upload-exact
+                  route:
+                  - destination:
+                      host: streamhive-upload-service
+                      port:
+                        number: 3001
+                # Rule for Upload Service (prefix with trailing slash)
                 - match:
                   - uri:
                       regex: '^/api/upload/?$'
                   rewrite:
-                    uri: "/api/v1/upload"
+                    uri: "/api/v1/upload/"
+                  headers:
+                    response:
+                      add:
+                        x-upload-route: upload-prefix
                   route:
                   - destination:
                       host: streamhive-upload-service
