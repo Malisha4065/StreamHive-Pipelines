@@ -703,9 +703,9 @@ stages:
                 # Rule for Upload Service
                 - match:
                   - uri:
-                      prefix: /api/upload/api/v1
+                      prefix: /api/upload/
                   rewrite:
-                    uri: "/api/v1/upload"
+                    uri: "/upload"
                   route:
                   - destination:
                       host: streamhive-upload-service
