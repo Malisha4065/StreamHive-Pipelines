@@ -703,7 +703,7 @@ stages:
                 # Rule for Upload Service
                 - match:
                   - uri:
-                      prefix: /api/upload
+                      prefix: /api/upload/
                   rewrite:
                     uri: "/"
                   route:
@@ -714,7 +714,7 @@ stages:
                 # Rule for Video Catalog Service
                 - match:
                   - uri:
-                      prefix: /api/catalog
+                      prefix: /api/catalog/
                   rewrite:
                     uri: "/"
                   route:
@@ -725,7 +725,7 @@ stages:
                 # Rule for Playback Service
                 - match:
                   - uri:
-                      prefix: /api/playback
+                      prefix: /api/playback/
                   rewrite:
                     uri: "/"
                   route:
