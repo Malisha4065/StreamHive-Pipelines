@@ -777,7 +777,7 @@ stages:
                   - uri:
                       prefix: /api/catalog/
                   rewrite:
-                    uri: "/api/v1"
+                    uri: "/api/v1/"
                   route:
                   - destination:
                       host: streamhive-video-catalog-service
