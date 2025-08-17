@@ -832,7 +832,7 @@ stages:
                       - name: VITE_API_PLAYBACK
                         value: "/api/playback"
                       - name: VITE_JWT
-                        value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ1c2VyMTIzIiwidXNlcm5hbWUiOiJkZW1vIiwicGVybWlzc2lvbnMiOlsidXBsb2FkIiwidmlldyIsImNhdGFsb2ciXSwiaWF0IjoxNzU1MzUyNDM5LCJleHAiOjE3NTU0Mzg4Mzl9._-cIKwrfd6o08Je90420o8S5vErgSQSmsmlkBDnwdW8"
+                        value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ1c2VyMTIzIiwidXNlcm5hbWUiOiJkZW1vIiwicGVybWlzc2lvbnMiOlsidXBsb2FkIiwidmlldyIsImNhdGFsb2ciXSwiaWF0IjoxNzU1NDUzOTI4LCJleHAiOjE3NTU1NDAzMjh9.M9zOQsqSz1o-6khP4ZUcDb3_hVsJs0DPAFduKNVKXXU"
                       resources:
                         requests:
                           memory: "128Mi"
