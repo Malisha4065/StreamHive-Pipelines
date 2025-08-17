@@ -786,9 +786,9 @@ stages:
                 # Rule for Playback Service
                 - match:
                   - uri:
-                      prefix: /api/playback/
+                      prefix: /api/playback/playback/
                   rewrite:
-                    uri: "/"
+                    uri: "/playback/"
                   route:
                   - destination:
                       host: streamhive-playback-service
