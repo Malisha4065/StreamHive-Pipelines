@@ -228,10 +228,6 @@ stages:
       name: 'Default'
     steps:
     - checkout: security
-    - script: |
-        echo "Building SecurityService..."
-        ./gradlew build --no-daemon
-      displayName: 'Build SecurityService'
     - task: Docker@2
       displayName: 'Build and Push SecurityService Image'
       inputs:
