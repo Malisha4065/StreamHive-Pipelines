@@ -45,6 +45,11 @@ resources:
     name: Malisha4065/StreamHive-PlaybackService
     ref: main
     endpoint: Malisha4065
+  - repository: security
+    type: github
+    name: Malisha4065/StreamHive-SecurityService
+    ref: main
+    endpoint: Malisha4065
 
 stages:
 - stage: BuildAndPushImages
@@ -222,10 +227,9 @@ stages:
     pool:
       name: 'Default'
     steps:
-    - checkout: self
+    - checkout: security
     - script: |
         echo "Building SecurityService..."
-        cd SecurityService
         ./gradlew build --no-daemon
       displayName: 'Build SecurityService'
     - task: Docker@2
@@ -234,8 +238,8 @@ stages:
         containerRegistry: $(dockerRegistryServiceConnection)
         repository: $(imageRepository)/streamhive-security-service
         command: 'buildAndPush'
-        Dockerfile: 'SecurityService/Dockerfile'
-        buildContext: 'SecurityService'
+        Dockerfile: 'Dockerfile'
+        buildContext: '.'
         tags: |
           $(Build.BuildNumber)
           latest
