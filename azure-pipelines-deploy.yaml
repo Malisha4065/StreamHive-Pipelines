@@ -305,6 +305,8 @@ stages:
                           - ping
                         initialDelaySeconds: 60
                         periodSeconds: 10
+                        timeoutSeconds: 10
+                        failureThreshold: 3
                       readinessProbe:
                         exec:
                           command:
@@ -313,6 +315,8 @@ stages:
                           - check_port_connectivity
                         initialDelaySeconds: 20
                         periodSeconds: 10
+                        timeoutSeconds: 10
+                        failureThreshold: 3
                     volumes:
                     - name: rabbitmq-storage
                       emptyDir: {}
