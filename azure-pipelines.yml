@@ -217,6 +217,29 @@ stages:
           $(Build.BuildNumber)
           latest
 
+  - job: BuildSecurityService
+    displayName: 'Build Security Service'
+    pool:
+      name: 'Default'
+    steps:
+    - checkout: self
+    - script: |
+        echo "Building SecurityService..."
+        cd SecurityService
+        ./gradlew build --no-daemon
+      displayName: 'Build SecurityService'
+    - task: Docker@2
+      displayName: 'Build and Push SecurityService Image'
+      inputs:
+        containerRegistry: $(dockerRegistryServiceConnection)
+        repository: $(imageRepository)/streamhive-security-service
+        command: 'buildAndPush'
+        Dockerfile: 'SecurityService/Dockerfile'
+        buildContext: 'SecurityService'
+        tags: |
+          $(Build.BuildNumber)
+          latest
+          
   - job: BuildPlaybackService
     displayName: 'Build Playback Service'
     pool:

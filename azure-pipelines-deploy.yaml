@@ -347,6 +347,85 @@ stages:
               # Create namespace if it doesn't exist
               kubectl create namespace $(k8sNamespace) --dry-run=client -o yaml | kubectl apply -f -
               
+              # Deploy Security Service (Spring Boot)
+              cat <<EOF | kubectl apply -f -
+              apiVersion: apps/v1
+              kind: Deployment
+              metadata:
+                name: streamhive-security-service
+                namespace: $(k8sNamespace)
+              spec:
+                replicas: 2 # Start with 2 for availability
+                selector:
+                  matchLabels:
+                    app: streamhive-security-service
+                template:
+                  metadata:
+                    labels:
+                      app: streamhive-security-service
+                  spec:
+                    containers:
+                    - name: security-service
+                      image: $(imageRepository)/streamhive-security-service:latest
+                      ports:
+                      - containerPort: 8080
+                      env:
+                      - name: SERVER_PORT
+                        value: "8080"
+                      - name: SPRING_PROFILES_ACTIVE
+                        value: "kubernetes" # Use a K8s-specific profile if you have one
+                      # Add database and other env vars as needed by your Spring Boot app
+                      - name: DB_HOST
+                        value: "postgres"
+                      - name: DB_PORT
+                        value: "5432"
+                      - name: DB_USER
+                        value: "postgres"
+                      - name: DB_PASSWORD
+                        valueFrom:
+                          secretKeyRef:
+                            name: streamhive-secrets
+                            key: DB_PASSWORD
+                      - name: JWT_SECRET # The security service will definitely need this
+                        valueFrom:
+                          secretKeyRef:
+                            name: streamhive-secrets
+                            key: JWT_SECRET
+                      resources:
+                        requests:
+                          memory: "256Mi"
+                          cpu: "200m"
+                        limits:
+                          memory: "512Mi"
+                          cpu: "500m"
+                      # Health checks for Spring Boot Actuator
+                      livenessProbe:
+                        httpGet:
+                          path: /actuator/health/liveness
+                          port: 8080
+                        initialDelaySeconds: 45 # Give Spring Boot time to start
+                        periodSeconds: 15
+                      readinessProbe:
+                        httpGet:
+                          path: /actuator/health/readiness
+                          port: 8080
+                        initialDelaySeconds: 20
+                        periodSeconds: 10
+              ---
+              apiVersion: v1
+              kind: Service
+              metadata:
+                name: streamhive-security-service
+                namespace: $(k8sNamespace)
+              spec:
+                selector:
+                  app: streamhive-security-service
+                ports:
+                - port: 8080
+                  targetPort: 8080
+                type: ClusterIP
+              EOF
+
               # Deploy Upload Service
               cat <<EOF | kubectl apply -f -
               apiVersion: apps/v1
@@ -400,6 +479,8 @@ stages:
                         value: "3001"
                       - name: NODE_ENV
                         value: "production"
+                      - name: SECURITY_SERVICE_URL
+                        value: "http://streamhive-security-service:8080/auth/validate"
                       - name: JWT_SECRET
                         valueFrom:
                           secretKeyRef:
@@ -809,6 +890,15 @@ stages:
                       host: streamhive-playback-service
                       port:
                         number: 8090
+                # Rule for Security Service
+                - match:
+                  - uri:
+                      prefix: /api/auth/
+                  route:
+                  - destination:
+                      host: streamhive-security-service
+                      port:
+                        number: 8080
                 # Rule for the Frontend (catches everything else)
                 - route:
                   - destination:
@@ -848,6 +938,8 @@ stages:
                         value: "/api/playback"
                       - name: VITE_JWT
                         value: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJ1c2VyMTIzIiwidXNlcm5hbWUiOiJkZW1vIiwicGVybWlzc2lvbnMiOlsidXBsb2FkIiwidmlldyIsImNhdGFsb2ciXSwiaWF0IjoxNzU1NDU1MDYyLCJleHAiOjE3NTU1NDE0NjJ9.9RDfiaYzvevwRHMtwhsYUMapdJZDbiZADJ1oA5UNqEc"
+                      - name: VITE_API_LOGIN
+                        value: "/api/auth/login" 
                       resources:
                         requests:
                           memory: "128Mi"
