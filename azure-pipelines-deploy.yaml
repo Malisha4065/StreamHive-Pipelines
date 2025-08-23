@@ -501,7 +501,7 @@ stages:
                       - name: NODE_ENV
                         value: "production"
                       - name: SECURITY_SERVICE_URL
-                        value: "http://streamhive-security-service:8080/auth/validate"
+                        value: "http://streamhive-security-service:8080/api/auth/validate"
                       - name: JWT_SECRET
                         valueFrom:
                           secretKeyRef:
