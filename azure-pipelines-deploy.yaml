@@ -120,6 +120,25 @@ stages:
 
           - script: |
               cat <<EOF | kubectl apply -f -
+              apiVersion: v1
+              kind: ConfigMap
+              metadata:
+                name: postgres-init-scripts
+                namespace: streamhive
+              data:
+                init-db.sh: |
+                  #!/bin/bash
+                  set -e
+                  psql -v ON_ERROR_STOP=1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" <<-EOSQL
+                      SELECT 'CREATE DATABASE streamhive_security'
+                      WHERE NOT EXISTS (SELECT FROM pg_database WHERE datname = 'streamhive_security')\gexec
+                      GRANT ALL PRIVILEGES ON DATABASE streamhive_security TO "$POSTGRES_USER";
+                  EOSQL
+              EOF
+            displayName: 'Create PostgreSQL Init Scripts ConfigMap'
+
+          - script: |
+              cat <<EOF | kubectl apply -f -
               # PostgreSQL Database for StreamHive
               apiVersion: apps/v1
               kind: Deployment
@@ -153,11 +172,11 @@ stages:
                         value: "streamhive_dev_password"
                       - name: PGDATA
                         value: "/var/lib/postgresql/data/pgdata"
-                      - name: POSTGRES_MULTIPLE_DATABASES
-                        value: "streamhive_security"
                       volumeMounts:
                       - name: postgres-storage
                         mountPath: /var/lib/postgresql/data
+                      - name: postgres-init-scripts
+                        mountPath: /docker-entrypoint-initdb.d
                       livenessProbe:
                         exec:
                           command:
@@ -177,7 +196,9 @@ stages:
                     volumes:
                     - name: postgres-storage
                       emptyDir: {}
-
+                    - name: postgres-init-scripts
+                      configMap:
+                        name: postgres-init-scripts
               ---
               apiVersion: v1
               kind: Service
