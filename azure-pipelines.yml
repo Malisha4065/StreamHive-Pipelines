@@ -236,7 +236,6 @@ stages:
         command: 'buildAndPush'
         Dockerfile: 'Dockerfile'
         buildContext: '.'
-        arguments: '--no-cache'
         tags: |
           $(Build.BuildNumber)
           latest
