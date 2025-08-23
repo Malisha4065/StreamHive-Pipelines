@@ -153,6 +153,8 @@ stages:
                         value: "streamhive_dev_password"
                       - name: PGDATA
                         value: "/var/lib/postgresql/data/pgdata"
+                      - name: POSTGRES_MULTIPLE_DATABASES
+                        value: "streamhive_security"
                       volumeMounts:
                       - name: postgres-storage
                         mountPath: /var/lib/postgresql/data
@@ -379,6 +381,8 @@ stages:
                         value: "postgres"
                       - name: DB_PORT
                         value: "5432"
+                      - name: DB_NAME
+                        value: "streamhive_security"
                       - name: DB_USER
                         value: "postgres"
                       - name: DB_PASSWORD
