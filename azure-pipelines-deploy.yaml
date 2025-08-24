@@ -64,6 +64,16 @@ stages:
               echo "Creating namespace if it doesn't exist..."
               kubectl create namespace $(k8sNamespace) --dry-run=client -o yaml | kubectl apply -f -
             displayName: 'Create Namespace'
+
+          - script: |
+              echo "Ensuring namespace '$(k8sNamespace)' has Istio injection enabled..."
+              kubectl label namespace $(k8sNamespace) istio-injection=enabled --overwrite
+            displayName: 'Enable Istio Injection on Namespace'
+
+          - script: |
+              echo "Ensuring Istio Ingress Gateway is exposed via a LoadBalancer..."
+              kubectl patch service istio-ingressgateway -n istio-system --type merge -p '{"spec":{"type":"LoadBalancer"}}'
+            displayName: 'Expose Istio Ingress Gateway'
             
           - script: |
               cat <<EOF | kubectl apply -f -
