@@ -71,9 +71,9 @@ stages:
             displayName: 'Enable Istio Injection on Namespace'
 
           - script: |
-              echo "Ensuring Istio Ingress Gateway is exposed via a LoadBalancer..."
-              kubectl patch service istio-ingressgateway -n istio-system --type merge -p '{"spec":{"type":"LoadBalancer"}}'
-            displayName: 'Expose Istio Ingress Gateway'
+              echo "Ensuring Istio Ingress Gateway is exposed via a predictable NodePort for the external LB..."
+              kubectl patch service istio-ingressgateway -n istio-system --type merge -p '{"spec":{"type":"NodePort", "ports": [{"name": "http2", "port": 80, "protocol": "TCP", "targetPort": 8080, "nodePort": 30080}]}}'
+            displayName: 'Expose Istio Gateway on a Static NodePort'
             
           - script: |
               cat <<EOF | kubectl apply -f -
