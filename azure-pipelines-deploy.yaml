@@ -75,9 +75,9 @@ stages:
 
           - script: |
               set -e
-              echo "Creating 'monitoring' namespace (if missing) and enabling Istio injection..."
+              echo "Creating 'monitoring' namespace (if missing) and DISABLING Istio injection..."
               kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
-              kubectl label namespace monitoring istio-injection=enabled --overwrite
+              kubectl label namespace monitoring istio-injection=disabled --overwrite
 
               echo "Checking for Helm..."
               if ! command -v helm >/dev/null 2>&1; then
@@ -106,7 +106,8 @@ stages:
               # If you set the secret variable grafanaAdminPassword in Azure DevOps, it will be used here.
               HELM_SET_ARGS="--set grafana.service.type=NodePort --set grafana.service.nodePort=32000 --set grafana.defaultDashboardsEnabled=true \
                 --set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=true \
-                --set prometheus.prometheusSpec.podMonitorSelectorNilUsesHelmValues=true"
+                --set prometheus.prometheusSpec.podMonitorSelectorNilUsesHelmValues=true \
+                --set prometheusOperator.admissionWebhooks.enabled=false"
               # Optionally expose Prometheus UI via NodePort as well
               HELM_SET_ARGS="$HELM_SET_ARGS --set prometheus.service.type=NodePort --set prometheus.service.nodePort=32001"
               if [ -n "$GRAFANA_ADMIN_USER" ]; then
@@ -116,9 +117,13 @@ stages:
                 HELM_SET_ARGS="$HELM_SET_ARGS --set grafana.adminPassword=$GRAFANA_ADMIN_PASSWORD"
               fi
 
+              echo "Pre-installing CRDs to avoid Helm pre-install timeouts..."
+              helm show crds prometheus-community/kube-prometheus-stack | kubectl apply -f - || true
+
               helm upgrade --install kube-prom-stack prometheus-community/kube-prometheus-stack \
                 --namespace monitoring \
                 --create-namespace \
+                --skip-crds --atomic --wait --timeout 20m --wait-for-jobs \
                 $HELM_SET_ARGS
 
               echo "Waiting for Grafana and Prometheus pods to be ready..."
