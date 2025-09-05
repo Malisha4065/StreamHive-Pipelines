@@ -107,7 +107,9 @@ stages:
               HELM_SET_ARGS="--set grafana.service.type=NodePort --set grafana.service.nodePort=32000 --set grafana.defaultDashboardsEnabled=true \
                 --set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=true \
                 --set prometheus.prometheusSpec.podMonitorSelectorNilUsesHelmValues=true \
-                --set prometheusOperator.admissionWebhooks.enabled=false"
+                --set prometheusOperator.admissionWebhooks.enabled=false \
+                --set prometheusOperator.admissionWebhooks.patch.enabled=false \
+                --set prometheusOperator.tls.enabled=false"
               # Optionally expose Prometheus UI via NodePort as well
               HELM_SET_ARGS="$HELM_SET_ARGS --set prometheus.service.type=NodePort --set prometheus.service.nodePort=32001"
               if [ -n "$GRAFANA_ADMIN_USER" ]; then
