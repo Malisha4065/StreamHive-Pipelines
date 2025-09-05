@@ -139,7 +139,43 @@ stages:
           - script: |
               echo "Applying Istio ServiceMonitors (if Istio is present)..."
               if kubectl get ns istio-system >/dev/null 2>&1; then
-                kubectl apply -n monitoring -f deploy/monitoring/servicemonitors-istio.yaml
+                cat <<EOF | kubectl apply -f -
+              apiVersion: monitoring.coreos.com/v1
+              kind: ServiceMonitor
+              metadata:
+                name: istio-ingressgateway
+                namespace: monitoring
+                labels:
+                  release: kube-prom-stack
+              spec:
+                selector:
+                  matchLabels:
+                    istio: ingressgateway
+                namespaceSelector:
+                  matchNames:
+                    - istio-system
+                endpoints:
+                  - port: http-envoy-prom
+                    interval: 15s
+              ---
+              apiVersion: monitoring.coreos.com/v1
+              kind: ServiceMonitor
+              metadata:
+                name: istiod
+                namespace: monitoring
+                labels:
+                  release: kube-prom-stack
+              spec:
+                selector:
+                  matchLabels:
+                    app: istiod
+                namespaceSelector:
+                  matchNames:
+                    - istio-system
+                endpoints:
+                  - port: http-monitoring
+                    interval: 15s
+              EOF
               else
                 echo "Namespace istio-system not found; skipping Istio ServiceMonitors."
               fi
