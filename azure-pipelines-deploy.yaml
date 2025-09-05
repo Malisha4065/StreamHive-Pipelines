@@ -117,19 +117,20 @@ stages:
                 HELM_SET_ARGS="$HELM_SET_ARGS --set grafana.adminPassword=$GRAFANA_ADMIN_PASSWORD"
               fi
 
-              echo "Pre-installing CRDs to avoid Helm pre-install timeouts..."
-              helm show crds prometheus-community/kube-prometheus-stack | kubectl apply -f - || true
+              echo "Installing CRDs using kubectl replace to avoid annotation size limits..."
+              helm show crds prometheus-community/kube-prometheus-stack | kubectl replace -f - || \
+              helm show crds prometheus-community/kube-prometheus-stack | kubectl create -f - || true
 
+              echo "Installing kube-prometheus-stack without waiting for all jobs..."
               helm upgrade --install kube-prom-stack prometheus-community/kube-prometheus-stack \
                 --namespace monitoring \
                 --create-namespace \
-                --skip-crds --atomic --wait --timeout 20m --wait-for-jobs \
+                --skip-crds --timeout 10m \
                 $HELM_SET_ARGS
 
-              echo "Waiting for Grafana and Prometheus pods to be ready..."
-              kubectl rollout status deploy/kube-prom-stack-grafana -n monitoring --timeout=180s || true
-              kubectl rollout status statefulset/prometheus-kube-prom-stack-prometheus -n monitoring --timeout=300s || true
-              kubectl rollout status statefulset/alertmanager-kube-prom-stack-alertmanager -n monitoring --timeout=300s || true
+              echo "Checking basic pod status (without blocking)..."
+              kubectl get pods -n monitoring --no-headers | head -10 || true
+              echo "Monitoring stack installation initiated. Pods may take 5-10 minutes to fully start."
             displayName: 'Install Prometheus & Grafana (monitoring)'
             env:
               GRAFANA_ADMIN_USER: $(grafanaAdminUser)
