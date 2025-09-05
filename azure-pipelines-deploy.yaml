@@ -20,6 +20,9 @@ variables:
   k8sNamespace: 'streamhive'
   keyvaultName: '${KEYVAULT_NAME}'
   tenantId: '${TENANT_ID}'
+  # Monitoring (Grafana) - set grafanaAdminPassword as a Secret variable in Azure DevOps
+  grafanaAdminUser: 'admin'
+  grafanaAdminPassword: 'admin'
 
 resources:
   repositories:
@@ -69,6 +72,72 @@ stages:
               echo "Ensuring namespace '$(k8sNamespace)' has Istio injection enabled..."
               kubectl label namespace $(k8sNamespace) istio-injection=enabled --overwrite
             displayName: 'Enable Istio Injection on Namespace'
+
+          - script: |
+              set -e
+              echo "Creating 'monitoring' namespace (if missing) and enabling Istio injection..."
+              kubectl create namespace monitoring --dry-run=client -o yaml | kubectl apply -f -
+              kubectl label namespace monitoring istio-injection=enabled --overwrite
+
+              echo "Checking for Helm..."
+              if ! command -v helm >/dev/null 2>&1; then
+                echo "Helm not found. Installing Helm (fallback to local if no sudo)..."
+                set -x
+                TMP_HELM=/tmp/helm.tgz
+                curl -fsSL https://get.helm.sh/helm-v3.14.4-linux-amd64.tar.gz -o "$TMP_HELM"
+                tar -xzf "$TMP_HELM" -C /tmp
+                sudo mv /tmp/linux-amd64/helm /usr/local/bin/helm 2>/dev/null || true
+                if ! command -v helm >/dev/null 2>&1; then
+                  mkdir -p "$HOME/bin"
+                  mv /tmp/linux-amd64/helm "$HOME/bin/helm"
+                  export PATH="$HOME/bin:$PATH"
+                fi
+                set +x
+              else
+                echo "Helm is already installed."
+              fi
+
+              echo "Adding Helm repos and updating..."
+              helm repo add prometheus-community https://prometheus-community.github.io/helm-charts || true
+              helm repo add grafana https://grafana.github.io/helm-charts || true
+              helm repo update
+
+              echo "Installing/Upgrading kube-prometheus-stack (Prometheus + Grafana)..."
+              # If you set the secret variable grafanaAdminPassword in Azure DevOps, it will be used here.
+              HELM_SET_ARGS="--set grafana.service.type=NodePort --set grafana.service.nodePort=32000 --set grafana.defaultDashboardsEnabled=true \
+                --set prometheus.prometheusSpec.serviceMonitorSelectorNilUsesHelmValues=true \
+                --set prometheus.prometheusSpec.podMonitorSelectorNilUsesHelmValues=true"
+              # Optionally expose Prometheus UI via NodePort as well
+              HELM_SET_ARGS="$HELM_SET_ARGS --set prometheus.service.type=NodePort --set prometheus.service.nodePort=32001"
+              if [ -n "$GRAFANA_ADMIN_USER" ]; then
+                HELM_SET_ARGS="$HELM_SET_ARGS --set grafana.adminUser=$GRAFANA_ADMIN_USER"
+              fi
+              if [ -n "$GRAFANA_ADMIN_PASSWORD" ]; then
+                HELM_SET_ARGS="$HELM_SET_ARGS --set grafana.adminPassword=$GRAFANA_ADMIN_PASSWORD"
+              fi
+
+              helm upgrade --install kube-prom-stack prometheus-community/kube-prometheus-stack \
+                --namespace monitoring \
+                --create-namespace \
+                $HELM_SET_ARGS
+
+              echo "Waiting for Grafana and Prometheus pods to be ready..."
+              kubectl rollout status deploy/kube-prom-stack-grafana -n monitoring --timeout=180s || true
+              kubectl rollout status statefulset/prometheus-kube-prom-stack-prometheus -n monitoring --timeout=300s || true
+              kubectl rollout status statefulset/alertmanager-kube-prom-stack-alertmanager -n monitoring --timeout=300s || true
+            displayName: 'Install Prometheus & Grafana (monitoring)'
+            env:
+              GRAFANA_ADMIN_USER: $(grafanaAdminUser)
+              GRAFANA_ADMIN_PASSWORD: $(grafanaAdminPassword)
+
+          - script: |
+              echo "Applying Istio ServiceMonitors (if Istio is present)..."
+              if kubectl get ns istio-system >/dev/null 2>&1; then
+                kubectl apply -n monitoring -f deploy/monitoring/servicemonitors-istio.yaml
+              else
+                echo "Namespace istio-system not found; skipping Istio ServiceMonitors."
+              fi
+            displayName: 'Configure Prometheus scraping for Istio'
 
           - script: |
               echo "Ensuring Istio Ingress Gateway is exposed via predictable NodePorts for the external LB..."
